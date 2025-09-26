@@ -81,7 +81,7 @@ inline int32_t mergeCompareAndPrescale(COUNTER_T tc, uint8_t prescaler) {
   logvarln(prescaler);
   // store prescaler in most significant byte and counter in 3 least significant bytes
   const int32_t result = ((static_cast<int32_t>(prescaler) & 0x07) << 24) + static_cast<COUNTER_T>(tc);
-  logvarln(result);
+//  logvarln(result);
   return result;
 }
 
@@ -89,16 +89,16 @@ template<typename COUNTER_T>
 inline COUNTER_T dispatchCompare(int32_t timerCounterAndPrescaler) {
   logvarln(timerCounterAndPrescaler);
   constexpr COUNTER_T mask = ((static_cast<COUNTER_T>(1) << (8 * sizeof(COUNTER_T)))-1);
-  logvarln(mask);
+//  logvarln(mask);
   const COUNTER_T result = timerCounterAndPrescaler & mask;
-  logvarln(result);
+//  logvarln(result);
   return result;
 }
 
 template<typename COUNTER_T>
 inline uint8_t dispatchPrescaler(int32_t timerCounterAndPrescaler) {
   const uint8_t result = (timerCounterAndPrescaler >> 24) & 0x07;
-  logvarln(result);
+//  logvarln(result);
   return result;
 }
 
@@ -134,14 +134,14 @@ static int32_t calculateCompareAndPrescale_(const uint32_t periodNanoSec, const 
 template<typename COUNTER_T>
 uint32_t maxPeriod_ns_(const uint64_t* const TIMER_PERIOD_FEMTOSEC, const size_t PRESCALER_COUNT) {
   const uint64_t periodFemtoSec = (1LL << (8*sizeof(COUNTER_T))) * TIMER_PERIOD_FEMTOSEC[PRESCALER_COUNT-1];
-  logvarln(periodFemtoSec);
+//  logvarln(periodFemtoSec);
   return periodFemtoSec / MEGA;
 }
 
 template<typename COUNTER_T>
 uint32_t minPeriod_ns_(const uint64_t* const TIMER_PERIOD_FEMTOSEC, const size_t PRESCALER_COUNT) {
   const uint64_t periodFemtoSec = 1LL * TIMER_PERIOD_FEMTOSEC[1];
-  logvarln(periodFemtoSec);
+//  logvarln(periodFemtoSec);
   return periodFemtoSec / MEGA;
 }
 
@@ -152,20 +152,22 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> class TimerSpec;
 
 
 /**
- * Timer1 timer spec for any microcontroller
+ * 16 bit Timer1 timer spec for any microcontroller
  */
 #if defined TCNT1
 template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 1> {
   typedef uint16_t counter_t;
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
-  static void setCounter(counter_t v) {TCNT1 = v;}
-  static void setPrescaler(const uint8_t v) {TCCR1B = (TCCR1B & ~0x07) | v;}
-  static void setCompareValue(const counter_t v) {OCR1A = v;}
+  static void clearTCCR() {TCCR1A = 0; TCCR1B = 0;};
+  static void setCounter(counter_t v) {logvarln(v); TCNT1 = v; logvarln(TCNT1);}
+  static void setPrescaler(const uint8_t v) {logvarln(v); logvarln(TCCR1B); uint8_t x = (TCCR1B & ~0x07) | v; logvarln(x); TCCR1B = x; logvarln(TCCR1B);}
+  static void setCompareValue(const counter_t v) {logvarln(v); OCR1A = v; logvarln(OCR1A);}
+  static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR1B, WGM12, v);}
 #if defined TIMSK1
-  static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK1, OCIE1A, v);}
+  static void enableCompareMatchInterrupt(const uint8_t v) {logvarln(v); bitWrite(TIMSK1, OCIE1A, v); logvarln(TIMSK1);}
 #elif defined TIMSK
-  static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK, OCIE1A, v);}
+  static void enableCompareMatchInterrupt(const uint8_t v) {logvarln(v); bitWrite(TIMSK, OCIE1A, v); logvarln(TIMSK);}
 #endif
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
@@ -180,16 +182,18 @@ const uint64_t* const TimerSpec<id, 1>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 
 
 /**
- * Timer1 timer spec for ATMEGA_TINY25
+ * 8 bit Timer1 timer spec for ATMEGA_TINY25
  */
 #if defined TCNT1
 template<> struct TimerSpec<ATMEGA_TINY25, 1> {
   typedef uint8_t counter_t;
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
+  static void clearTCCR() {TCCR1A = 0; TCCR1B = 0;};
   static void setPrescaler(const uint8_t v) {TCCR1B = (TCCR1B & ~0x07) | v;}
   static void setCounter(counter_t v) {TCNT1 = v;}
   static void setCompareValue(const counter_t v) {OCR1A = v;}
+  static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR1A, WGM11, v);}
 #if defined TIMSK1
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK1, OCIE1A, v);}
 #elif defined TIMSK
@@ -207,16 +211,18 @@ const uint64_t* const TimerSpec<ATMEGA_TINY25, 1>::TIMER_PERIOD_FEMTOSEC = TIMER
 #endif // #if defined TIMSK1 || defined TIMSK
 
 /**
- * Timer2 timer spec for any microcontroller
+ * 8 bit Timer2 timer spec for any microcontroller
  */
 #if defined TCNT2
 template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 2> {
   typedef uint8_t counter_t;
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
+  static void clearTCCR() {TCCR2A = 0; TCCR2B = 0;};
   static void setPrescaler(const uint8_t v) {TCCR2B = (TCCR2B & ~0x07) | v;}
   static void setCounter(counter_t v) {TCNT2 = v;}
   static void setCompareValue(const counter_t v) {OCR2A = v;}
+  static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR2A, WGM21, v);}
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK2, OCIE2A, v);}
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_T2;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_T2_CNT;
@@ -230,16 +236,18 @@ const uint64_t* const TimerSpec<id, 2>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 #endif // #if defined TIMSK2
 
 /**
- * Timer3 timer spec for any microcontroller
+ * 16 bit Timer3 timer spec for any microcontroller
  */
 #if defined TCNT3
 template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 3> {
   typedef uint16_t counter_t;
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
+  static void clearTCCR() {TCCR3A = 0; TCCR3B = 0;};
   static void setCounter(counter_t v) {TCNT3 = v;}
   static void setPrescaler(const uint8_t v) {TCCR3B = (TCCR3B & ~0x07) | v;}
   static void setCompareValue(const counter_t v) {OCR3A = v;}
+  static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR3B, WGM32, v);}
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK3, OCIE3A, v);}
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
@@ -253,16 +261,18 @@ const uint64_t* const TimerSpec<id, 3>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 #endif
 
 /**
- * Timer4 timer spec for any microcontroller
+ * 16 bit Timer4 timer spec for any microcontroller
  */
 #if defined TCNT4
 template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 4> {
   typedef uint16_t counter_t;
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
+  static void clearTCCR() {TCCR4A = 0; TCCR4B = 0;};
   static void setCounter(counter_t v) {TCNT4 = v;}
   static void setPrescaler(const uint8_t v) {TCCR4B = (TCCR4B & ~0x07) | v;}
   static void setCompareValue(const counter_t v) {OCR4A = v;}
+  static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR4B, WGM42, v);}
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK4, OCIE4A, v);}
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
@@ -276,16 +286,18 @@ const uint64_t* const TimerSpec<id, 4>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 #endif
 
 /**
- * Timer4 timer spec for ATMEGA_32U4
+ * 16 bit Timer4 timer spec for ATMEGA_32U4
  */
 #if defined TCNT4
 template<> struct TimerSpec<ATMEGA_32U4, 4> {
-  typedef uint8_t counter_t;
+  typedef uint16_t counter_t;
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
+  static void clearTCCR() {TCCR4A = 0; TCCR4B = 0;};
   static void setCounter(counter_t v) {TCNT4 = v;}
   static void setPrescaler(const uint8_t v) {TCCR4B = (TCCR4B & ~0x07) | v;}
   static void setCompareValue(const counter_t v) {OCR4A = v;}
+  static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR4B, CS43, v);} // TODO this may not be correct, atmega32u4
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK4, OCIE4A, v);}
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
@@ -300,16 +312,18 @@ const uint64_t* const TimerSpec<ATMEGA_32U4, 4>::TIMER_PERIOD_FEMTOSEC = TIMER_P
 
 
 /**
- * Timer5 timer spec for any microcontroller
+ * 16 bit Timer5 timer spec for any microcontroller
  */
 #if defined TCNT5
 template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 5> {
   typedef uint16_t counter_t;
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
+  static void clearTCCR() {TCCR5A = 0; TCCR5B = 0;};
   static void setCounter(counter_t v) {TCNT5 = v;}
   static void setPrescaler(const uint8_t v) {TCCR5B = (TCCR5B & ~0x07) | v;}
   static void setCompareValue(const counter_t v) {OCR4A = v;}
+  static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR5B, WGM52, v);}
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK4, OCIE5A, v);}
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
@@ -324,6 +338,15 @@ const uint64_t* const TimerSpec<id, 5>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 
 template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
   typedef typename TimerSpec<id, timerNo>::counter_t counter_t;
+
+  static void init() {
+    noInterrupts();
+    TimerSpec<id, timerNo>::enableCompareMatchInterrupt(0);
+    TimerSpec<id, timerNo>::clearTCCR();
+    TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(0));
+    TimerSpec<id, timerNo>::setClearCounterOnCompareMatch(1);
+    interrupts();
+  }
 
   static int32_t getTimerSettingsForPeriod_ns(const uint32_t nanoSeconds) {
     return TimerSpec<id, timerNo>::calculateCompareAndPrescale(nanoSeconds);
@@ -340,22 +363,22 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
   }
 
   static inline void stop() {
-    TimerSpec<id, timerNo>::setPrescaler(0);
+    noInterrupts();
     TimerSpec<id, timerNo>::enableCompareMatchInterrupt(0);
+    TimerSpec<id, timerNo>::setPrescaler(0);
+    interrupts();
   }
 
   static void doOneShot(const int32_t timerSettings) {
-    stop();
     noInterrupts();
-    TimerSpec<id, timerNo>::setCompareValue(dispatchCompare<counter_t>(timerSettings));
     TimerSpec<id, timerNo>::setCounter(0);
+    TimerSpec<id, timerNo>::setCompareValue(dispatchCompare<counter_t>(timerSettings));
+    TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(timerSettings));
     TimerSpec<id, timerNo>::enableCompareMatchInterrupt(1);
     interrupts();
-    TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(timerSettings));
   }
 
   static void startPeriodic(const int32_t timerSettings) {
-    stop();
   }
 };
 

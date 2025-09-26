@@ -15,6 +15,7 @@ template<unsigned timerNo>
 class TimerInterruptLean {
   // The instance for this timerNo
   static TimerInterruptLean<timerNo>* timerInterruptInstance;
+  void init();
 
   virtual void onTimeout() = 0;
 public:
@@ -42,6 +43,7 @@ inline bool TimerInterruptLean<timerNo>::begin() {
   if (timerInterruptInstance == nullptr) {
     // Only one instance per timerNo allowed
     timerInterruptInstance = this;
+    init();
     return true;
   }
   return false;
