@@ -371,10 +371,39 @@ template<unsigned timerNo> struct IsrHook {
       }
 //    }
   }
+  static void vector();
 };
 
+#include "defvectors.inc"
+#if defined TCNT1
+template<> void IsrHook<1>::vector() __asm(TIMER1_COMPA_vect) __attribute__ ((signal,used, externally_visible));
+template<> void IsrHook<1>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<1>::isr();}
+#endif
+
+#if defined TCNT2
+template<> void IsrHook<2>::vector() __asm(TIMER2_COMPA_vect) __attribute__ ((signal,used, externally_visible));
+template<> void IsrHook<2>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<2>::isr();}
+#endif
+
+#if defined TCNT3
+template<> void IsrHook<3>::vector() __asm(TIMER3_COMPA_vect) __attribute__ ((signal,used, externally_visible));
+template<> void IsrHook<3>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<3>::isr();}
+#endif
+
+#if defined TCNT4
+template<> void IsrHook<4>::vector() __asm(TIMER4_COMPA_vect) __attribute__ ((signal,used, externally_visible));
+template<> void IsrHook<4>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<4>::isr();}
+#endif
+
+#if defined TCNT5
+template<> void IsrHook<5>::vector() __asm(TIMER5_COMPA_vect) __attribute__ ((signal,used, externally_visible));
+template<> void IsrHook<5>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<5>::isr();}
+#endif
+
+#include "undefvectors.inc"
+
+
 template<unsigned timerNo> void (*IsrHook<timerNo>::mStopFunction)() = nullptr;
-//template<unsigned timerNo> uint8_t IsrHook<timerNo>::mIgnoreInterruptCnt = 0;
 template<unsigned timerNo> uint8_t IsrHook<timerNo>::mInterruptCnt = 1;
 
 template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {

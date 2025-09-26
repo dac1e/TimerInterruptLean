@@ -5,6 +5,8 @@
  *      Author: Wolfgang
  */
 
+#pragma once
+
 #ifndef TIMERINTERRUPTLEAN_INTERNAL_LOG_H_
 #define TIMERINTERRUPTLEAN_INTERNAL_LOG_H_
 
@@ -13,7 +15,6 @@
 #include <Arduino.h>
 
 char* str( uint64_t num );
-
 
 template<typename T> void print_variableln(const T& v, const char* const varname, const char* context=nullptr) {
   if(context) {
@@ -55,8 +56,10 @@ inline void print_variable(const uint64_t& v, const char* const varname, const c
   Serial.print(str(v));
 }
 
+#if !defined(STRINGIFY)
+  #define STRINGIFY(s) #s
+#endif
 
-#define STRINGIFY(s) #s
 #define logvar(x) print_variable(x, STRINGIFY(x), __FUNCTION__)
 #define logvarln(x) print_variableln(x, STRINGIFY(x), __FUNCTION__)
 

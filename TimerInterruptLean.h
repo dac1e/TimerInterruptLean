@@ -69,4 +69,6 @@ inline int32_t TimerInterruptLean<timerNo>::getTimerSettingsForPeriod_ms(
   return getTimerSettingsForPeriod_ns(milliSeconds * (1000L * 1000L));
 }
 
+#include "internal/TimerInterruptLeanAVR.inc"
+
 #endif /* TIMERINTLEAN_TIMERINTERRUPTLEAN_H_ */
