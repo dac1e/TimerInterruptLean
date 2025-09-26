@@ -282,10 +282,15 @@ const uint64_t* const TimerSpec<id, 3>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 #endif
 
 /**
- * 16 bit Timer4 spec for any microcontroller
+ * 16 bit Timer4 spec for ATMEGA_2560
  */
 #if defined TCNT4
-template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 4> {
+
+#if not defined WGM42
+#define WGM42 3
+#endif
+
+template<> struct TimerSpec<ATMEGA_2560, 4> {
   typedef uint16_t counter_t;
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
@@ -302,14 +307,19 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 4> {
     return calculateCompareAndPrescale_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
 };
-template<enum MICROCONTROLLER_ID id>
-const uint64_t* const TimerSpec<id, 4>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEMTOSEC_TX;
+template<>
+const uint64_t* const TimerSpec<ATMEGA_2560, 4>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEMTOSEC_TX;
 #endif
 
 /**
  * 16 bit Timer4 spec for ATMEGA_32U4
  */
 #if defined TCNT4
+
+#if not defined CS43
+#define CS43 3
+#endif
+
 template<> struct TimerSpec<ATMEGA_32U4, 4> {
   typedef uint16_t counter_t;
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}

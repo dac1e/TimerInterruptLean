@@ -3,8 +3,6 @@
 #include "TimerInterruptLean.h"
 
 extern "C" void TIMER1_COMPA_vect (void) __attribute__ ((signal,used, externally_visible));
-//static auto vect = TIMER1_COMPA_vect;
-static void (*vect)() = TIMER1_COMPA_vect;
 
 static uint32_t timeStamp = 0;
 static size_t   counter   = 0;
@@ -30,8 +28,6 @@ int32_t timerSettingsLong;
 void setup()
 {
   Serial.begin(9600);
-  Serial.print("vect: ");
-  Serial.println(reinterpret_cast<uint32_t>(vect));
 
   timer1.begin();
 
