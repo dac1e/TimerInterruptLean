@@ -150,7 +150,7 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> class TimerSpec;
 
 
 /**
- * 16 bit Timer1 timer spec for any microcontroller
+ * 16 bit Timer1 spec for any microcontroller
  */
 #if defined TCNT1
 template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 1> {
@@ -203,7 +203,7 @@ const uint64_t* const TimerSpec<id, 1>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 
 
 /**
- * 8 bit Timer1 timer spec for ATMEGA_TINY25
+ * 8 bit Timer1 spec for ATMEGA_TINY25
  */
 #if defined TCNT1
 template<> struct TimerSpec<ATMEGA_TINY25, 1> {
@@ -232,7 +232,7 @@ const uint64_t* const TimerSpec<ATMEGA_TINY25, 1>::TIMER_PERIOD_FEMTOSEC = TIMER
 #endif // #if defined TIMSK1 || defined TIMSK
 
 /**
- * 8 bit Timer2 timer spec for any microcontroller
+ * 8 bit Timer2 spec for any microcontroller
  */
 #if defined TCNT2
 template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 2> {
@@ -257,7 +257,7 @@ const uint64_t* const TimerSpec<id, 2>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 #endif // #if defined TIMSK2
 
 /**
- * 16 bit Timer3 timer spec for any microcontroller
+ * 16 bit Timer3 spec for any microcontroller
  */
 #if defined TCNT3
 template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 3> {
@@ -282,7 +282,7 @@ const uint64_t* const TimerSpec<id, 3>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 #endif
 
 /**
- * 16 bit Timer4 timer spec for any microcontroller
+ * 16 bit Timer4 spec for any microcontroller
  */
 #if defined TCNT4
 template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 4> {
@@ -307,7 +307,7 @@ const uint64_t* const TimerSpec<id, 4>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 #endif
 
 /**
- * 16 bit Timer4 timer spec for ATMEGA_32U4
+ * 16 bit Timer4 spec for ATMEGA_32U4
  */
 #if defined TCNT4
 template<> struct TimerSpec<ATMEGA_32U4, 4> {
@@ -333,7 +333,7 @@ const uint64_t* const TimerSpec<ATMEGA_32U4, 4>::TIMER_PERIOD_FEMTOSEC = TIMER_P
 
 
 /**
- * 16 bit Timer5 timer spec for any microcontroller
+ * 16 bit Timer5 spec for any microcontroller
  */
 #if defined TCNT5
 template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 5> {
@@ -358,21 +358,21 @@ const uint64_t* const TimerSpec<id, 5>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEM
 #endif
 
 template<unsigned timerNo> struct IsrHook {
-  static uint8_t mInterruptCnt;
-//  static uint8_t mIgnoreInterruptCnt;
+  static uint32_t mInterruptCnt;
   static void (*mStopFunction)();
   static void isr() {
-//    if(mIgnoreInterruptCnt) {
-//      --mIgnoreInterruptCnt;
-//    } else {
-      TimerInterruptLean<timerNo>::isr();
+    TimerInterruptLean<timerNo>::isr();
+    if(mInterruptCnt) {
       if(not --mInterruptCnt) {
         mStopFunction();
       }
-//    }
+    }
   }
   static void vector();
 };
+
+template<unsigned timerNo> void (*IsrHook<timerNo>::mStopFunction)() = nullptr;
+template<unsigned timerNo> uint32_t IsrHook<timerNo>::mInterruptCnt = 1;
 
 #include "defvectors.inc"
 #if defined TCNT1
@@ -401,10 +401,6 @@ template<> void IsrHook<5>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<5>
 #endif
 
 #include "undefvectors.inc"
-
-
-template<unsigned timerNo> void (*IsrHook<timerNo>::mStopFunction)() = nullptr;
-template<unsigned timerNo> uint8_t IsrHook<timerNo>::mInterruptCnt = 1;
 
 template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
   typedef typename TimerSpec<id, timerNo>::counter_t counter_t;
@@ -440,19 +436,14 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
     interrupts();
   }
 
-  static void startMultipleShots(const int32_t timerSettings, const size_t shotCount) {
+  static void start(const int32_t timerSettings, const uint32_t shotCount) {
     noInterrupts();
-//    IsrHook<timerNo>::mIgnoreInterruptCnt = 0;
     IsrHook<timerNo>::mInterruptCnt = shotCount;
-
     TimerSpec<id, timerNo>::setCounter(0);
     TimerSpec<id, timerNo>::setCompareValue(dispatchCompare<counter_t>(timerSettings));
     TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(timerSettings));
     TimerSpec<id, timerNo>::enableCompareMatchInterrupt(1);
     interrupts();
-  }
-
-  static void startPeriodic(const int32_t timerSettings) {
   }
 };
 

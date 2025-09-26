@@ -27,7 +27,7 @@ public:
   static inline bool isPeriodTooSmall(const int32_t timerSettings);
   static inline bool isPeriodTooBig(const int32_t timerSettings);
   static inline void stop();
-  static void startMultipleShots(const int32_t timerSettings, const size_t shotCount);
+  static void start(const int32_t timerSettings, const uint32_t shotCount);
   static void startPeriodic(const int32_t timerSettings);
 
   static void isr();

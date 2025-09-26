@@ -95,7 +95,7 @@ template<unsigned timerNo> inline bool TimerInterruptLean<timerNo>::isPeriodTooS
 
 template<unsigned timerNo> uint32_t TimerInterruptLean<timerNo>::maxPeriod_ns() {
   const uint32_t result = TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::maxPeriod_ns();
-  logvarln(result);
+//  logvarln(result);
   return result;
 }
 
@@ -109,12 +109,8 @@ template<unsigned timerNo> void TimerInterruptLean<timerNo>::stop() {
   TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::stop();
 }
 
-template<unsigned timerNo> void TimerInterruptLean<timerNo>::startMultipleShots(const int32_t timerSettings, const size_t shotCount) {
-  TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::startMultipleShots(timerSettings, shotCount);
-}
-
-template<unsigned timerNo> void TimerInterruptLean<timerNo>::startPeriodic(const int32_t timerSettings) {
-  TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::startPeriodic(timerSettings);
+template<unsigned timerNo> void TimerInterruptLean<timerNo>::start(const int32_t timerSettings, const uint32_t shotCount) {
+  TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::start(timerSettings, shotCount);
 }
 
 #endif // #if defined ARDUINO_ARCH_AVR
