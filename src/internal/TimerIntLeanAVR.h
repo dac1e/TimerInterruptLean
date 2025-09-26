@@ -435,7 +435,7 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
   }
 
   static uint32_t maxPeriod_ns() {return TimerSpec<id, timerNo>::maxPeriod_ns();}
-  static inline bool isPeriodTooBig(const int32_t timerSettings) {
+  static inline bool isPeriodTooLarge(const int32_t timerSettings) {
     return timerSettings == TIME_PERIOD_TOO_BIG;
   }
 
@@ -447,12 +447,14 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
   }
 
   static void start(const int32_t timerSettings, const uint32_t shotCount) {
-    noInterrupts();
-    IsrHook<timerNo>::mInterruptCnt = shotCount;
-    TimerSpec<id, timerNo>::setCounter(0);
-    TimerSpec<id, timerNo>::setCompareValue(dispatchCompare<counter_t>(timerSettings));
-    TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(timerSettings));
-    TimerSpec<id, timerNo>::enableCompareMatchInterrupt(1);
+    if(timerSettings >= 0) {
+      noInterrupts();
+      IsrHook<timerNo>::mInterruptCnt = shotCount;
+      TimerSpec<id, timerNo>::setCounter(0);
+      TimerSpec<id, timerNo>::setCompareValue(dispatchCompare<counter_t>(timerSettings));
+      TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(timerSettings));
+      TimerSpec<id, timerNo>::enableCompareMatchInterrupt(1);
+    }
     interrupts();
   }
 };

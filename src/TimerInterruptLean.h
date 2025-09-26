@@ -11,6 +11,12 @@
 #include <stdint.h>
 #include "internal/log.h"
 
+enum class TIMER_INTERRUPT_LEAN_ERROR {
+  OK,
+  PERIOD_TOO_SMALL,
+  PERIOD_TOO_LARGE
+};
+
 template<unsigned timerNo>
 class TimerInterruptLean {
   virtual void onTimeout() = 0;
@@ -22,13 +28,12 @@ public:
   static int32_t getTimerSettingsForPeriod_ms(const uint32_t milliSeconds);
   static int32_t getTimerSettingsForPeriod_us(const uint32_t microSeconds);
   static int32_t getTimerSettingsForPeriod_ns(const uint32_t nanoSeconds);
+
   static uint32_t minPeriod_ns();
   static uint32_t maxPeriod_ns();
-  static inline bool isPeriodTooSmall(const int32_t timerSettings);
-  static inline bool isPeriodTooBig(const int32_t timerSettings);
+
   static inline void stop();
-  static void start(const int32_t timerSettings, const uint32_t shotCount);
-  static void startPeriodic(const int32_t timerSettings);
+  static TIMER_INTERRUPT_LEAN_ERROR start(const int32_t timerSettings, const uint32_t shotCount);
 
   static void isr();
 private:

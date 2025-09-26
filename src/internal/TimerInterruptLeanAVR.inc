@@ -87,20 +87,8 @@ template<unsigned timerNo> uint32_t TimerInterruptLean<timerNo>::minPeriod_ns() 
   return result;
 }
 
-template<unsigned timerNo> inline bool TimerInterruptLean<timerNo>::isPeriodTooSmall(const int32_t timerSettings) {
-  const bool result = TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::isPeriodTooSmall(timerSettings);
-  logvarln(result);
-  return result;
-}
-
 template<unsigned timerNo> uint32_t TimerInterruptLean<timerNo>::maxPeriod_ns() {
   const uint32_t result = TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::maxPeriod_ns();
-//  logvarln(result);
-  return result;
-}
-
-template<unsigned timerNo> inline bool TimerInterruptLean<timerNo>::isPeriodTooBig(const int32_t timerSettings) {
-  const bool result = TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::isPeriodTooBig(timerSettings);
 //  logvarln(result);
   return result;
 }
@@ -109,8 +97,17 @@ template<unsigned timerNo> void TimerInterruptLean<timerNo>::stop() {
   TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::stop();
 }
 
-template<unsigned timerNo> void TimerInterruptLean<timerNo>::start(const int32_t timerSettings, const uint32_t shotCount) {
+template<unsigned timerNo> TIMER_INTERRUPT_LEAN_ERROR TimerInterruptLean<timerNo>::start(const int32_t timerSettings, const uint32_t shotCount) {
+  if(TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::isPeriodTooSmall(timerSettings)) {
+    return TIMER_INTERRUPT_LEAN_ERROR::PERIOD_TOO_SMALL;
+  }
+
+  if(TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::isPeriodTooLarge(timerSettings)) {
+    return TIMER_INTERRUPT_LEAN_ERROR::PERIOD_TOO_LARGE;
+  }
+
   TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::start(timerSettings, shotCount);
+  return TIMER_INTERRUPT_LEAN_ERROR::OK;
 }
 
 #endif // #if defined ARDUINO_ARCH_AVR
