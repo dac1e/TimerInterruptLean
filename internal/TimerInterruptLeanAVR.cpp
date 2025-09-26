@@ -11,39 +11,32 @@
 
 #include "log.h"
 
-template<unsigned timerNo> struct isrHook {
-  static int mOneShot;
-  static void isr() {
-    TimerInterruptLean<timerNo>::isr();
-  }
-};
-
 #if not defined DISABLE_TIMER1_INT_LEAN
-#define TIMER1_INT_LEAN_ISR_INSTATIATE() template class TimerInterruptLean<1>; ISR(TIMER1_COMPA_vect) {isrHook<1>::isr();}
+#define TIMER1_INT_LEAN_ISR_INSTATIATE() template class TimerInterruptLean<1>; ISR(TIMER1_COMPA_vect) {TimerIntLean_::TimerIntLeanAVR::IsrHook<1>::isr();}
 #else
 #define TIMER1_INT_LEAN_ISR_INSTATIATE()
 #endif
 
 #if not defined DISABLE_TIMER2_INT_LEAN
-#define TIMER2_INT_LEAN_ISR_INSTATIATE() template class TimerInterruptLean<2>; ISR(TIMER2_COMPA_vect) {isrHook<2>::isr();}
+#define TIMER2_INT_LEAN_ISR_INSTATIATE() template class TimerInterruptLean<2>; ISR(TIMER2_COMPA_vect) {TimerIntLean_::TimerIntLeanAVR::IsrHook<2>::isr();}
 #else
 #define TIMER2_INT_LEAN_ISR_INSTATIATE()
 #endif
 
 #if not defined DISABLE_TIMER3_INT_LEAN
-#define TIMER3_INT_LEAN_ISR_INSTATIATE() template class TimerInterruptLean<3>; ISR(TIMER3_COMPA_vect) {isrHook<3>::isr();}
+#define TIMER3_INT_LEAN_ISR_INSTATIATE() template class TimerInterruptLean<3>; ISR(TIMER3_COMPA_vect) {TimerIntLean_::TimerIntLeanAVR::IsrHook<3>::isr();}
 #else
 #define TIMER3_INT_LEAN_ISR_INSTATIATE()
 #endif
 
 #if not defined DISABLE_TIMER4_INT_LEAN
-#define TIMER4_INT_LEAN_ISR_INSTATIATE() template class TimerInterruptLean<4>; ISR(TIMER4_COMPA_vect) {isrHook<4>::isr();}
+#define TIMER4_INT_LEAN_ISR_INSTATIATE() template class TimerInterruptLean<4>; ISR(TIMER4_COMPA_vect) {TimerIntLean_::TimerIntLeanAVR::IsrHook<4>::isr();}
 #else
 #define TIMER4_INT_LEAN_ISR_INSTATIATE()
 #endif
 
 #if not defined DISABLE_TIMER5_INT_LEAN
-#define TIMER5_INT_LEAN_ISR_INSTATIATE() template class TimerInterruptLean<5>; ISR(TIMER5_COMPA_vect) {isrHook<5>::isr();}
+#define TIMER5_INT_LEAN_ISR_INSTATIATE() template class TimerInterruptLean<5>; ISR(TIMER5_COMPA_vect) {TimerIntLean_::TimerIntLeanAVR::IsrHook<5>::isr();}
 #else
 #define TIMER5_INT_LEAN_ISR_INSTATIATE()
 #endif
@@ -169,8 +162,8 @@ template<unsigned timerNo> void TimerInterruptLean<timerNo>::stop() {
   TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::stop();
 }
 
-template<unsigned timerNo> void TimerInterruptLean<timerNo>::doOneShot(const int32_t timerSettings) {
-  TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::doOneShot(timerSettings);
+template<unsigned timerNo> void TimerInterruptLean<timerNo>::startMultipleShots(const int32_t timerSettings, const size_t shotCount) {
+  TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::startMultipleShots(timerSettings, shotCount);
 }
 
 template<unsigned timerNo> void TimerInterruptLean<timerNo>::startPeriodic(const int32_t timerSettings) {

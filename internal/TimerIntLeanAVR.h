@@ -77,8 +77,8 @@ enum TIMER_SETTING_ERROR {
 
 template<typename COUNTER_T>
 inline int32_t mergeCompareAndPrescale(COUNTER_T tc, uint8_t prescaler) {
-  logvarln(tc);
-  logvarln(prescaler);
+//  logvarln(tc);
+//  logvarln(prescaler);
   // store prescaler in most significant byte and counter in 3 least significant bytes
   const int32_t result = ((static_cast<int32_t>(prescaler) & 0x07) << 24) + static_cast<COUNTER_T>(tc);
 //  logvarln(result);
@@ -87,7 +87,7 @@ inline int32_t mergeCompareAndPrescale(COUNTER_T tc, uint8_t prescaler) {
 
 template<typename COUNTER_T>
 inline COUNTER_T dispatchCompare(int32_t timerCounterAndPrescaler) {
-  logvarln(timerCounterAndPrescaler);
+//  logvarln(timerCounterAndPrescaler);
   constexpr COUNTER_T mask = ((static_cast<COUNTER_T>(1) << (8 * sizeof(COUNTER_T)))-1);
 //  logvarln(mask);
   const COUNTER_T result = timerCounterAndPrescaler & mask;
@@ -105,18 +105,16 @@ inline uint8_t dispatchPrescaler(int32_t timerCounterAndPrescaler) {
 template<typename COUNTER_T>
 static int32_t calculateCompareAndPrescale_(const uint32_t periodNanoSec, const uint64_t* const TIMER_PERIOD_FEMTOSEC, const size_t PRESCALER_COUNT) {
   static constexpr uint64_t maxCounterValue = (1LL << (8*sizeof(COUNTER_T)));
-  logvarln(maxCounterValue);
+//  logvarln(maxCounterValue);
 
   const uint64_t periodFemtoSec = periodNanoSec * MEGA;
-  logvarln(periodFemtoSec);
+//  logvarln(periodFemtoSec);
   uint8_t prescaler = 1;
   while(prescaler < PRESCALER_COUNT) {
     const uint64_t tc = periodFemtoSec / TIMER_PERIOD_FEMTOSEC[prescaler];
-
-    logvarln(prescaler);
-    logvarln(TIMER_PERIOD_FEMTOSEC[prescaler]);
-    logvarln(tc);
-
+//    logvarln(prescaler);
+//    logvarln(TIMER_PERIOD_FEMTOSEC[prescaler]);
+//    logvarln(tc);
     if(not tc) {
       return TIME_PERIOD_TOO_SMALL;
     }
@@ -160,14 +158,37 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 1> {
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static void clearTCCR() {TCCR1A = 0; TCCR1B = 0;};
-  static void setCounter(counter_t v) {logvarln(v); TCNT1 = v; logvarln(TCNT1);}
-  static void setPrescaler(const uint8_t v) {logvarln(v); logvarln(TCCR1B); uint8_t x = (TCCR1B & ~0x07) | v; logvarln(x); TCCR1B = x; logvarln(TCCR1B);}
-  static void setCompareValue(const counter_t v) {logvarln(v); OCR1A = v; logvarln(OCR1A);}
+  static void setCounter(counter_t v) {
+//    logvarln(v);
+    TCNT1 = v;
+//    logvarln(TCNT1);
+  }
+  static void setPrescaler(const uint8_t v) {
+//    logvarln(v);
+//    logvarln(TCCR1B);
+    const uint8_t x = (TCCR1B & ~0x07) | v;
+//    logvarln(x);
+    TCCR1B = x;
+//    logvarln(TCCR1B);
+  }
+  static void setCompareValue(const counter_t v) {
+//    logvarln(v);
+    OCR1A = v;
+//    logvarln(OCR1A);
+    }
   static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR1B, WGM12, v);}
 #if defined TIMSK1
-  static void enableCompareMatchInterrupt(const uint8_t v) {logvarln(v); bitWrite(TIMSK1, OCIE1A, v); logvarln(TIMSK1);}
+  static void enableCompareMatchInterrupt(const uint8_t v) {
+//    logvarln(v);
+    bitWrite(TIMSK1, OCIE1A, v);
+//    logvarln(TIMSK1);
+  }
 #elif defined TIMSK
-  static void enableCompareMatchInterrupt(const uint8_t v) {logvarln(v); bitWrite(TIMSK, OCIE1A, v); logvarln(TIMSK);}
+  static void enableCompareMatchInterrupt(const uint8_t v) {
+    logvarln(v);
+    bitWrite(TIMSK, OCIE1A, v);
+    logvarln(TIMSK);
+  }
 #endif
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
@@ -336,11 +357,32 @@ template<enum MICROCONTROLLER_ID id>
 const uint64_t* const TimerSpec<id, 5>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEMTOSEC_TX;
 #endif
 
+template<unsigned timerNo> struct IsrHook {
+  static uint8_t mInterruptCnt;
+//  static uint8_t mIgnoreInterruptCnt;
+  static void (*mStopFunction)();
+  static void isr() {
+//    if(mIgnoreInterruptCnt) {
+//      --mIgnoreInterruptCnt;
+//    } else {
+      TimerInterruptLean<timerNo>::isr();
+      if(not --mInterruptCnt) {
+        mStopFunction();
+      }
+//    }
+  }
+};
+
+template<unsigned timerNo> void (*IsrHook<timerNo>::mStopFunction)() = nullptr;
+//template<unsigned timerNo> uint8_t IsrHook<timerNo>::mIgnoreInterruptCnt = 0;
+template<unsigned timerNo> uint8_t IsrHook<timerNo>::mInterruptCnt = 1;
+
 template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
   typedef typename TimerSpec<id, timerNo>::counter_t counter_t;
 
   static void init() {
     noInterrupts();
+    IsrHook<timerNo>::mStopFunction = stop;
     TimerSpec<id, timerNo>::enableCompareMatchInterrupt(0);
     TimerSpec<id, timerNo>::clearTCCR();
     TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(0));
@@ -369,8 +411,11 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
     interrupts();
   }
 
-  static void doOneShot(const int32_t timerSettings) {
+  static void startMultipleShots(const int32_t timerSettings, const size_t shotCount) {
     noInterrupts();
+//    IsrHook<timerNo>::mIgnoreInterruptCnt = 0;
+    IsrHook<timerNo>::mInterruptCnt = shotCount;
+
     TimerSpec<id, timerNo>::setCounter(0);
     TimerSpec<id, timerNo>::setCompareValue(dispatchCompare<counter_t>(timerSettings));
     TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(timerSettings));
