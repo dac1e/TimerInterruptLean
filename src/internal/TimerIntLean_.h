@@ -11,10 +11,7 @@
 namespace TimerIntLean_ {
 
 enum PLATFORM_ID {PLID_AVR, PLID_SAM};
-
-template<unsigned timerNo, enum PLATFORM_ID> class Timer {
-
-};
+template<unsigned timerNo, enum PLATFORM_ID> class Timer;
 
 }
 

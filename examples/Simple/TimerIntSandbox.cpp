@@ -2,12 +2,13 @@
 #include "TimerIntSandbox.h"
 #include "TimerInterruptLean.h"
 
-extern "C" void TIMER1_COMPA_vect (void) __attribute__ ((signal,used, externally_visible));
 
 static uint32_t timeStamp = 0;
 static size_t   counter   = 0;
 
-class MyTimer1Interupt : public TimerInterruptLean<1> {
+static constexpr size_t TIMER_NO = 1;
+
+class MyTimer1Interupt : public TimerInterruptLean<TIMER_NO> {
   void onTimeout() override {
     const uint32_t t =  millis();
     const uint32_t delta = t - timeStamp;
@@ -76,7 +77,7 @@ void setup()
     timeStamp = millis();
     Serial.println("start inf x long");
     // use pre-calculated timer settings
-    const TIMER_INTERRUPT_LEAN_ERROR err = timer1.start(timerSettingsLong, 0);
+    const TIMER_INTERRUPT_LEAN_ERROR err = timer1.start(timerSettingsLong, 0 /* 0=infinite */);
     printErr(err);
   }
 }

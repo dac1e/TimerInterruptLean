@@ -69,7 +69,6 @@ static_assert(false, "Error, this library does not support the selected board.")
 /*
  * AVR implementation of platform dependent TimerInterrupt API.
  */
-#include "../TimerInterruptLean.h"
 
 template<unsigned timerNo> void TimerInterruptLean<timerNo>::initTimerRegister() {
   TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::init();

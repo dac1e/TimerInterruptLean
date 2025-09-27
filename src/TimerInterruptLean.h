@@ -32,8 +32,8 @@ public:
   static uint32_t minPeriod_ns();
   static uint32_t maxPeriod_ns();
 
-  static inline void stop();
   static TIMER_INTERRUPT_LEAN_ERROR start(const int32_t timerSettings, const uint32_t shotCount);
+  static inline void stop();
 
   static void isr();
 private:
@@ -42,38 +42,8 @@ private:
   static void initTimerRegister();
 };
 
-template<unsigned timerNo> TimerInterruptLean<timerNo> *TimerInterruptLean<timerNo>::timerInterruptInstance = nullptr;
 
-template<unsigned timerNo>
-inline bool TimerInterruptLean<timerNo>::begin() {
-  if (timerInterruptInstance == nullptr) {
-    // Only one instance per timerNo allowed
-    timerInterruptInstance = this;
-    initTimerRegister();
-    return true;
-  }
-  return false;
-}
+#include "internal/TimerInterruptLean.inc"
 
-template<unsigned timerNo>
-inline void TimerInterruptLean<timerNo>::isr() {
-  if (timerInterruptInstance) {
-    timerInterruptInstance->onTimeout();
-  }
-}
-
-template<unsigned timerNo>
-inline int32_t TimerInterruptLean<timerNo>::getTimerSettingsForPeriod_us(
-    const uint32_t microSeconds) {
-  return getTimerSettingsForPeriod_ns(microSeconds * 1000L);
-}
-
-template<unsigned timerNo>
-inline int32_t TimerInterruptLean<timerNo>::getTimerSettingsForPeriod_ms(
-    const uint32_t milliSeconds) {
-  return getTimerSettingsForPeriod_ns(milliSeconds * (1000L * 1000L));
-}
-
-#include "internal/TimerInterruptLeanAVR.inc"
 
 #endif /* TIMERINTLEAN_TIMERINTERRUPTLEAN_H_ */
