@@ -99,7 +99,7 @@ inline uint8_t dispatchPrescaler(int32_t timerSettings) {
 template<typename COUNTER_T>
 static int32_t calculateTimerSettings_(const uint32_t periodNanoSec, const uint64_t* const TIMER_PERIOD_FEMTOSEC, const size_t PRESCALER_COUNT) {
   static constexpr uint64_t maxCounterValue = (1LL << (8*sizeof(COUNTER_T)));
-  const uint64_t periodFemtoSec = periodNanoSec * MEGA;
+  const uint64_t periodFemtoSec = static_cast<uint64_t>(periodNanoSec) * MEGA;
   uint8_t prescaler = 1;
   while(prescaler < PRESCALER_COUNT) {
     const uint64_t tc = periodFemtoSec / TIMER_PERIOD_FEMTOSEC[prescaler];
