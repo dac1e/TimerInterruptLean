@@ -10,7 +10,6 @@
 #include "TimerIntLeanAVR.h"
 #include "log.h"
 
-
 namespace TimerIntLean_ {
 
 #if ( defined(__AVR_ATmega2560__) || defined(__AVR_ATmega2561__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega1281__) || \
@@ -62,7 +61,6 @@ namespace TimerIntLean_ {
 #else
 static_assert(false, "Error, this library does not support the selected board.");
 #endif
-
 
 } // namespace TimerIntLean_
 

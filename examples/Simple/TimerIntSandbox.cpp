@@ -69,7 +69,7 @@ void setup()
     Serial.println("start 3 x short");
     const TIMER_INTERRUPT_LEAN_ERROR err = timer1.start(timerSettingsShort, 3);
     printErr(err);
-    delay(6000); // wait 6 seconds
+    delay(3000); // wait 3 seconds
   }
 
   // Infinite timeouts with long 500ms period
