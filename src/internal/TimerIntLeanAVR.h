@@ -117,6 +117,34 @@ static int32_t calculateTimerSettings_(const uint32_t periodNanoSec, const uint6
   return TIME_PERIOD_TOO_BIG;
 }
 
+template<typename COUNTER_T> uint32_t timerSettingsToTimeout_ns_(const uint32_t timerSettings, const uint64_t* const TIMER_PERIOD_FEMTOSEC) {
+  COUNTER_T compareRegister = dispatchCompare<COUNTER_T>(timerSettings);
+  const uint8_t prescaler = dispatchPrescaler<COUNTER_T>(timerSettings);
+
+//  logvarln(timerSettings);
+  logvarln(compareRegister);
+  logvarln(prescaler);
+
+  constexpr uint64_t COMPARE_REGISTER_MAX = (1LL << (8*sizeof(COUNTER_T)));
+  constexpr uint64_t FEMPTO_SEC_MAX = UINT64_MAX / COMPARE_REGISTER_MAX;
+
+//  logvarln(COMPARE_REGISTER_MAX);
+//  logvarln(FEMPTO_SEC_MAX);
+  logvarln(TIMER_PERIOD_FEMTOSEC[prescaler]);
+//  logvarln(FEMPTO_SEC_MAX / TIMER_PERIOD_FEMTOSEC[prescaler]);
+
+  uint64_t periodFemtoSec = TIMER_PERIOD_FEMTOSEC[prescaler] * compareRegister;
+  uint64_t scale = 1;
+  while(FEMPTO_SEC_MAX / TIMER_PERIOD_FEMTOSEC[prescaler] < compareRegister) {
+    compareRegister = compareRegister >> 1;
+    scale = scale << 1;
+    periodFemtoSec = TIMER_PERIOD_FEMTOSEC[prescaler] * compareRegister;
+  }
+
+  logvarln(periodFemtoSec);
+  return periodFemtoSec / (MEGA / scale);
+}
+
 template<typename COUNTER_T>
 uint32_t maxPeriod_ns_(const uint64_t* const TIMER_PERIOD_FEMTOSEC, const size_t PRESCALER_COUNT) {
   const uint64_t periodFemtoSec = (1LL << (8*sizeof(COUNTER_T))) * TIMER_PERIOD_FEMTOSEC[PRESCALER_COUNT-1];
@@ -134,7 +162,7 @@ uint32_t minPeriod_ns_(const uint64_t* const TIMER_PERIOD_FEMTOSEC, const size_t
  */
 template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct TimerSpec {
   static_assert(timerNo <= 5, "Error, the hardware does not support timers greater than 5.");
-  static_assert(timerNo != 0, "Error, this library does not support timer 0.");
+  static_assert(timerNo != 0, "Error, this library does not support timer 0, because timer 0 is occupied by the arduino core.");
   static_assert(timerNo != 1, "Error, the hardware does not support timer 1.");
   static_assert(timerNo != 2, "Error, the hardware does not support timer 2.");
   static_assert(timerNo != 3, "Error, the hardware does not support timer 3.");
@@ -152,6 +180,7 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct TimerSpec {
   static void setClearCounterOnCompareMatch(const uint8_t v) {}
   static void enableCompareMatchInterrupt(const uint8_t v) {}
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {return 0;}
+  uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){return 0;}
 };
 
 
@@ -165,8 +194,8 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 1> {
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static void clearTCCR() {TCCR1A = 0; TCCR1B = 0;};
   static void setCounter(counter_t v) {TCNT1 = v;}
-  static void setPrescaler(const uint8_t v) {const uint8_t x = (TCCR1B & ~0x07) | v; TCCR1B = x;}
-  static void setCompareValue(const counter_t v) {OCR1A = v;}
+  static void setPrescaler(const uint8_t v) {logvarln(v); TCCR1B = (TCCR1B & ~0x07) | v; logvarln(TCCR1B);}
+  static void setCompareValue(const counter_t v) {logvarln(v); OCR1A = v; logvarln(OCR1A);}
   static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR1B, WGM12, v);}
 #if defined TIMSK1
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK1, OCIE1A, v);}
@@ -179,6 +208,10 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 1> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
+  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
+    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  }
+
 };
 template<enum MICROCONTROLLER_ID id>
 const uint64_t* const TimerSpec<id, 1>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEMTOSEC_TX;
@@ -194,8 +227,8 @@ template<> struct TimerSpec<ATMEGA_TINY25, 1> {
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static void clearTCCR() {TCCR1A = 0; TCCR1B = 0;};
-  static void setPrescaler(const uint8_t v) {TCCR1B = (TCCR1B & ~0x07) | v;}
-  static void setCounter(counter_t v) {TCNT1 = v;}
+  static void setPrescaler(const uint8_t v) {logvar(v); TCCR1B = (TCCR1B & ~0x07) | v;}
+  static void setCounter(counter_t v) {logvar(v); TCNT1 = v;}
   static void setCompareValue(const counter_t v) {OCR1A = v;}
   static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR1A, WGM11, v);}
 #if defined TIMSK1
@@ -208,6 +241,9 @@ template<> struct TimerSpec<ATMEGA_TINY25, 1> {
   static const uint64_t* const TIMER_PERIOD_FEMTOSEC;
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
+  }
+  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
+    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
   }
 };
 template<>
@@ -234,6 +270,9 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 2> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
+  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
+    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  }
 };
 template<enum MICROCONTROLLER_ID id>
 const uint64_t* const TimerSpec<id, 2>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEMTOSEC_T2;
@@ -258,6 +297,9 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 3> {
   static const uint64_t* const TIMER_PERIOD_FEMTOSEC;
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
+  }
+  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
+    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
   }
 };
 template<enum MICROCONTROLLER_ID id>
@@ -289,6 +331,9 @@ template<> struct TimerSpec<ATMEGA_2560, 4> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
+  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
+    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  }
 };
 template<>
 const uint64_t* const TimerSpec<ATMEGA_2560, 4>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEMTOSEC_TX;
@@ -319,6 +364,9 @@ template<> struct TimerSpec<ATMEGA_32U4, 4> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
+  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
+    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  }
 };
 template<>
 const uint64_t* const TimerSpec<ATMEGA_32U4, 4>::TIMER_PERIOD_FEMTOSEC = TIMER_PERIOD_FEMTOSEC_TX;
@@ -344,6 +392,9 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 5> {
   static const uint64_t* const TIMER_PERIOD_FEMTOSEC;
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
+  }
+  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
+    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
   }
 };
 template<enum MICROCONTROLLER_ID id>
@@ -408,8 +459,20 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
     interrupts();
   }
 
-  static int32_t getTimerSettingsForPeriod_ns(const uint32_t nanoSeconds) {
+  static int32_t calculateTimerSettingsForPeriod_ns(const uint32_t nanoSeconds) {
     return TimerSpec<id, timerNo>::calculateTimerSettings(nanoSeconds);
+  }
+
+  static uint32_t timerSettingsToTimeout_ns(const int32_t timerSettings) {
+    if(isPeriodTooSmall(timerSettings)) {
+      return 0;
+    }
+
+    if(isPeriodTooLarge(timerSettings)) {
+      return UINT32_MAX;
+    }
+
+    return TimerSpec<id, timerNo>::timerSettingsToTimeout_ns(timerSettings);
   }
 
   static uint32_t minPeriod_ns() {return TimerSpec<id, timerNo>::minPeriod_ns();}

@@ -25,9 +25,11 @@ public:
   bool begin();
 
   // platform dependent API
-  static int32_t getTimerSettingsForPeriod_ms(const uint32_t milliSeconds);
-  static int32_t getTimerSettingsForPeriod_us(const uint32_t microSeconds);
-  static int32_t getTimerSettingsForPeriod_ns(const uint32_t nanoSeconds);
+  static int32_t calculateTimerSettingsForPeriod_ms(const uint32_t milliSeconds);
+  static int32_t calculateTimerSettingsForPeriod_us(const uint32_t microSeconds);
+  static int32_t calculateTimerSettingsForPeriod_ns(const uint32_t nanoSeconds);
+  static int32_t timerSettingsToTimeout_ns(const int32_t timerSettings);
+  static TIMER_INTERRUPT_LEAN_ERROR checkTimeoutPeriod(const int32_t timerSettings);
 
   static uint32_t minPeriod_ns();
   static uint32_t maxPeriod_ns();
