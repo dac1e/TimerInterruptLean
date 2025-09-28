@@ -26,17 +26,5 @@ inline void TimerInterruptLean<timerNo>::isr() {
   }
 }
 
-template<unsigned timerNo>
-inline int32_t TimerInterruptLean<timerNo>::calculateTimerSettingsForPeriod_us(
-    const uint32_t microSeconds) {
-  return calculateTimerSettingsForPeriod_ns(microSeconds * 1000L);
-}
-
-template<unsigned timerNo>
-inline int32_t TimerInterruptLean<timerNo>::calculateTimerSettingsForPeriod_ms(
-    const uint32_t milliSeconds) {
-  return calculateTimerSettingsForPeriod_ns(milliSeconds * (1000L * 1000L));
-}
-
 // Platform dependent
 #include "internal/TimerInterruptLeanAVR.inc"

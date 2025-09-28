@@ -72,30 +72,27 @@ template<unsigned timerNo> void TimerInterruptLean<timerNo>::initTimerRegister()
   TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::init();
 }
 
-template<unsigned timerNo> int32_t TimerInterruptLean<timerNo>::calculateTimerSettingsForPeriod_ns(const uint32_t nanoSeconds) {
-  const int32_t result = TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::calculateTimerSettingsForPeriod_ns(nanoSeconds);
-//  logvarln(result);
+template<unsigned timerNo> typename TimerInterruptLean<timerNo>::timer_settings_t TimerInterruptLean<timerNo>::calculateTimerSettingsForPeriod_ns(const uint32_t nanoSeconds) {
+  const int32_t  result = TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::calculateTimerSettingsForPeriod_ns(nanoSeconds);
   return result;
 }
 
-template<unsigned timerNo> int32_t TimerInterruptLean<timerNo>::timerSettingsToTimeout_ns(const int32_t timerSettings) {
-  const uint32_t result = TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::timerSettingsToTimeout_ns( timerSettings);
+template<unsigned timerNo> uint32_t TimerInterruptLean<timerNo>::getScheduledTimeoutPeriod_ns(const timer_settings_t timerSettings) {
+  const uint32_t result = TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::getScheduledTimeoutPeriod_ns( timerSettings);
   return result;
 }
 
 template<unsigned timerNo> uint32_t TimerInterruptLean<timerNo>::minPeriod_ns() {
   const uint32_t result = TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::minPeriod_ns();
-//  logvarln(result);
   return result;
 }
 
 template<unsigned timerNo> uint32_t TimerInterruptLean<timerNo>::maxPeriod_ns() {
   const uint32_t result = TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::maxPeriod_ns();
-//  logvarln(result);
   return result;
 }
 
-template<unsigned timerNo> TIMER_INTERRUPT_LEAN_ERROR TimerInterruptLean<timerNo>::checkTimeoutPeriod(const int32_t timerSettings) {
+template<unsigned timerNo> TIMER_INTERRUPT_LEAN_ERROR TimerInterruptLean<timerNo>::checkTimeoutPeriod(const timer_settings_t timerSettings) {
   if(TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::isPeriodTooSmall(timerSettings)) {
     return TIMER_INTERRUPT_LEAN_ERROR::PERIOD_TOO_SMALL;
   }
@@ -110,7 +107,7 @@ template<unsigned timerNo> void TimerInterruptLean<timerNo>::stop() {
   TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::stop();
 }
 
-template<unsigned timerNo> TIMER_INTERRUPT_LEAN_ERROR TimerInterruptLean<timerNo>::start(const int32_t timerSettings, const uint32_t shotCount) {
+template<unsigned timerNo> TIMER_INTERRUPT_LEAN_ERROR TimerInterruptLean<timerNo>::start(const timer_settings_t timerSettings, const uint32_t shotCount) {
   if(TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::isPeriodTooSmall(timerSettings)) {
     return TIMER_INTERRUPT_LEAN_ERROR::PERIOD_TOO_SMALL;
   }

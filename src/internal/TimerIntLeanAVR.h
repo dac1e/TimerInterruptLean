@@ -84,7 +84,7 @@ inline int32_t makeTimerSettings(COUNTER_T tc, uint8_t prescaler) {
 }
 
 template<typename COUNTER_T>
-inline COUNTER_T dispatchCompare(int32_t timerSettings) {
+inline COUNTER_T dispatchCompareRegisterValue(int32_t timerSettings) {
   constexpr COUNTER_T mask = ((static_cast<COUNTER_T>(1) << (8 * sizeof(COUNTER_T)))-1);
   const COUNTER_T result = timerSettings & mask;
   return result;
@@ -117,8 +117,8 @@ static int32_t calculateTimerSettings_(const uint32_t periodNanoSec, const uint6
   return TIME_PERIOD_TOO_BIG;
 }
 
-template<typename COUNTER_T> uint32_t timerSettingsToTimeout_ns_(const uint32_t timerSettings, const uint64_t* const TIMER_PERIOD_FEMTOSEC) {
-  COUNTER_T compareRegister = dispatchCompare<COUNTER_T>(timerSettings);
+template<typename COUNTER_T> uint32_t getScheduledTimeoutPeriod_ns_(const uint32_t timerSettings, const uint64_t* const TIMER_PERIOD_FEMTOSEC) {
+  COUNTER_T compareRegister = dispatchCompareRegisterValue<COUNTER_T>(timerSettings);
   const uint8_t prescaler = dispatchPrescaler<COUNTER_T>(timerSettings);
 
 //  logvarln(timerSettings);
@@ -180,7 +180,7 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct TimerSpec {
   static void setClearCounterOnCompareMatch(const uint8_t v) {}
   static void enableCompareMatchInterrupt(const uint8_t v) {}
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {return 0;}
-  uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){return 0;}
+  uint32_t getScheduledTimeoutPeriod_ns(const uint32_t timerSettings){return 0;}
 };
 
 
@@ -208,8 +208,8 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 1> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
-  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
-    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  static uint32_t getScheduledTimeoutPeriod_ns(const uint32_t timerSettings){
+    return getScheduledTimeoutPeriod_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
   }
 
 };
@@ -242,8 +242,8 @@ template<> struct TimerSpec<ATMEGA_TINY25, 1> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
-  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
-    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  static uint32_t getScheduledTimeoutPeriod_ns(const uint32_t timerSettings){
+    return getScheduledTimeoutPeriod_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
   }
 };
 template<>
@@ -270,8 +270,8 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 2> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
-  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
-    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  static uint32_t getScheduledTimeoutPeriod_ns(const uint32_t timerSettings){
+    return getScheduledTimeoutPeriod_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
   }
 };
 template<enum MICROCONTROLLER_ID id>
@@ -298,8 +298,8 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 3> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
-  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
-    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  static uint32_t getScheduledTimeoutPeriod_ns(const uint32_t timerSettings){
+    return getScheduledTimeoutPeriod_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
   }
 };
 template<enum MICROCONTROLLER_ID id>
@@ -331,8 +331,8 @@ template<> struct TimerSpec<ATMEGA_2560, 4> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
-  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
-    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  static uint32_t getScheduledTimeoutPeriod_ns(const uint32_t timerSettings){
+    return getScheduledTimeoutPeriod_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
   }
 };
 template<>
@@ -364,8 +364,8 @@ template<> struct TimerSpec<ATMEGA_32U4, 4> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
-  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
-    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  static uint32_t getScheduledTimeoutPeriod_ns(const uint32_t timerSettings){
+    return getScheduledTimeoutPeriod_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
   }
 };
 template<>
@@ -393,8 +393,8 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 5> {
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {
     return calculateTimerSettings_<counter_t>(periodNanoSec, TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);
   }
-  static uint32_t timerSettingsToTimeout_ns(const uint32_t timerSettings){
-    return timerSettingsToTimeout_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
+  static uint32_t getScheduledTimeoutPeriod_ns(const uint32_t timerSettings){
+    return getScheduledTimeoutPeriod_ns_<counter_t>(timerSettings, TIMER_PERIOD_FEMTOSEC);
   }
 };
 template<enum MICROCONTROLLER_ID id>
@@ -463,7 +463,7 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
     return TimerSpec<id, timerNo>::calculateTimerSettings(nanoSeconds);
   }
 
-  static uint32_t timerSettingsToTimeout_ns(const int32_t timerSettings) {
+  static uint32_t getScheduledTimeoutPeriod_ns(const int32_t timerSettings) {
     if(isPeriodTooSmall(timerSettings)) {
       return 0;
     }
@@ -472,7 +472,7 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
       return UINT32_MAX;
     }
 
-    return TimerSpec<id, timerNo>::timerSettingsToTimeout_ns(timerSettings);
+    return TimerSpec<id, timerNo>::getScheduledTimeoutPeriod_ns(timerSettings);
   }
 
   static uint32_t minPeriod_ns() {return TimerSpec<id, timerNo>::minPeriod_ns();}
@@ -497,7 +497,7 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
       noInterrupts();
       IsrHook<timerNo>::mInterruptCnt = shotCount;
       TimerSpec<id, timerNo>::setCounter(0);
-      TimerSpec<id, timerNo>::setCompareValue(dispatchCompare<counter_t>(timerSettings));
+      TimerSpec<id, timerNo>::setCompareValue(dispatchCompareRegisterValue<counter_t>(timerSettings));
       TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(timerSettings));
       TimerSpec<id, timerNo>::enableCompareMatchInterrupt(1);
     }
