@@ -56,7 +56,7 @@ static const uint64_t TIMER_PERIOD_FEMTOSEC_TX[] = {
 
 // Timer T2
 static constexpr unsigned MAX_PRESCALE_T2 = 1024;
-static const unsigned PRESCALER_T2[] = {0,1,8,32,64,256,MAX_PRESCALE_T2};
+static const unsigned PRESCALER_T2[] = {0,1,8,32,64,128,256,MAX_PRESCALE_T2};
 static constexpr size_t PRESCALER_T2_CNT = sizeof(PRESCALER_T2) / sizeof(PRESCALER_T2[0]);
 static constexpr uint64_t MAX_PERIOD_FEMTOSEC_T2 = UINT64_MAX / MAX_PRESCALE_T2;
 
@@ -68,7 +68,8 @@ static const uint64_t TIMER_PERIOD_FEMTOSEC_T2[] = {
     PRESCALER_T2[4]*PETA/F_CPU,
     PRESCALER_T2[5]*PETA/F_CPU,
     PRESCALER_T2[6]*PETA/F_CPU,
-};
+    PRESCALER_T2[7]*PETA/F_CPU,
+ };
 
 enum TIMER_SETTING_ERROR {
   TIME_PERIOD_TOO_SMALL = -2,

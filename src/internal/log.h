@@ -14,7 +14,9 @@
 
 #include <Arduino.h>
 
-char* str( uint64_t num );
+namespace TimerIntLean_ {
+
+char* uint64toStr( uint64_t num );
 
 template<typename T> void print_variableln(const T& v, const char* const varname, const char* context=nullptr) {
   if(context) {
@@ -43,7 +45,7 @@ inline void print_variableln(const uint64_t& v, const char* const varname, const
   }
   Serial.print(varname);
   Serial.print('=');
-  Serial.println(str(v));
+  Serial.println(uint64toStr(v));
 }
 
 inline void print_variable(const uint64_t& v, const char* const varname, const char* context=nullptr) {
@@ -53,15 +55,16 @@ inline void print_variable(const uint64_t& v, const char* const varname, const c
   }
   Serial.print(varname);
   Serial.print('=');
-  Serial.print(str(v));
+  Serial.print(uint64toStr(v));
 }
 
-#if !defined(STRINGIFY)
-  #define STRINGIFY(s) #s
+#if !defined(__STRINGIFY)
+  #define __STRINGIFY(s) #s
 #endif
 
-#define logvar(x) print_variable(x, STRINGIFY(x), __FUNCTION__)
-#define logvarln(x) print_variableln(x, STRINGIFY(x), __FUNCTION__)
+#define logvar(x) print_variable(x, __STRINGIFY(x), __FUNCTION__)
+#define logvarln(x) print_variableln(x, __STRINGIFY(x), __FUNCTION__)
 
+} // namespace TimerIntLean_
 
 #endif /* TIMERINTERRUPTLEAN_INTERNAL_LOG_H_ */

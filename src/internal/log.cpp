@@ -8,7 +8,9 @@
 
 #include "log.h"
 
-char* str( uint64_t num ) {
+namespace TimerIntLean_ {
+
+char* uint64toStr( uint64_t num ) {
   static char buf[22];
   char* p = &buf[sizeof(buf)-1];
   *p = '\0';
@@ -19,3 +21,4 @@ char* str( uint64_t num ) {
   return p;
 }
 
+} // namespace TimerIntLean_ {

@@ -6,7 +6,7 @@
 static uint32_t timeStamp = 0;
 static size_t   counter   = 0;
 
-static constexpr size_t TIMER_NO = 1;
+static constexpr size_t TIMER_NO = 2;
 
 class MyTimer1Interupt : public TimerInterruptLean<TIMER_NO> {
   void onTimeout() override {
@@ -62,9 +62,10 @@ void setup()
   }
 
 
-  // 3 timeouts with short 200ms period
+  // 3 timeouts with short 16ms period
   {
-    const uint32_t timerSettingsShort = timer1.getTimerSettingsForPeriod_ms(200); // 200ms
+    const uint32_t timerSettingsShort = timer1.getTimerSettingsForPeriod_ms(16); // 16ms
+    delay(200);
     timeStamp = millis();
     Serial.println("start 3 x short");
     const TIMER_INTERRUPT_LEAN_ERROR err = timer1.start(timerSettingsShort, 3);
