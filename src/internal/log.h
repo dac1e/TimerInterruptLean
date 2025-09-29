@@ -34,7 +34,7 @@
 #include <stdint.h>
 #include <Arduino.h>
 
-#define TimerIntLean_ENABLE_LOG true
+#define TimerIntLean_ENABLE_LOG false
 
 namespace TimerIntLean_ {
 
