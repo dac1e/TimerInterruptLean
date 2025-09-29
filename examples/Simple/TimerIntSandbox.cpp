@@ -17,7 +17,7 @@ static constexpr size_t TIMER_NO = 1;
 // For convenience:
 // 1 millisecond = 1000 microseconds = 1000000 nanoseconds
 // 1 microsecond = 1000 nanoseconds
-constexpr uint32_t shortPeriodTimeoutDemand_ns =  16384000L; //  16.2384 milliseconds ->  16384000 nanoseconds
+constexpr uint32_t shortPeriodTimeoutDemand_ns =  16384000L; //   16.384 milliseconds ->  16384000 nanoseconds
 constexpr uint32_t longPeriodTimeoutDemand_ns  = 512345000L; // 512.3450 milliseconds -> 512345000 nanoseconds
 
 
@@ -61,7 +61,7 @@ void setup()
 
   /**
    * Pre-calculation and storing timer settings is not absolutely required, but it saves processor time.
-   * Alternatively the the timer settings could be calculated just before the timer is started.
+   * Alternatively the timer settings could be calculated just before the timer is started.
    */
   timerSettingsShortPeriod = myTimer.calculateTimerSettingsForPeriod_ns(shortPeriodTimeoutDemand_ns);
   timerSettingsLongPeriod  = myTimer.calculateTimerSettingsForPeriod_ns(longPeriodTimeoutDemand_ns);
