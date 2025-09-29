@@ -16,9 +16,8 @@ static constexpr size_t TIMER_NO = 1;
 ts_t timerSettingsShortPeriod=0;
 ts_t timerSettingsLongPeriod=0;
 
-constexpr uint32_t shortPeriodTimeoutDemand_ns = 262144000L; //  262.144 milliseconds ->  262144000 nanoseconds
-//constexpr uint32_t shortPeriodTimeoutDemand_ns = 54321000L; //  54.321 milliseconds ->  54321000 nanoseconds
-constexpr uint32_t longPeriodTimeoutDemand_ns = 512345000L; // 512.345 milliseconds -> 512345000 nanoseconds
+constexpr uint32_t shortPeriodTimeoutDemand_ns =  32768000L; //  32.768 milliseconds ->  32768000 nanoseconds
+constexpr uint32_t longPeriodTimeoutDemand_ns  = 512345000L; // 512.345 milliseconds -> 512345000 nanoseconds
 
 
 static void printPeriodErr(const uint32_t timeoutDemand_us, const TIMER_INTERRUPT_LEAN_ERROR err, const uint32_t minPeriod_ns, const uint32_t maxPeriod_ns );

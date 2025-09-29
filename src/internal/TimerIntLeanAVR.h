@@ -524,10 +524,10 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
       noInterrupts();
       IsrHook<timerNo>::mInterruptCnt = rptCount;
       TimerSpec<id, timerNo>::setCounter(0);
-      const counter_t compareValue = dispatchCompareRegisterValue<counter_t>(timerSettings);
-      TimerSpec<id, timerNo>::setCompareValue(compareValue);
+      const counter_t compareRegisterValue = dispatchCompareRegisterValue<counter_t>(timerSettings);
+      TimerSpec<id, timerNo>::setCompareValue(compareRegisterValue);
       TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(timerSettings));
-      if(compareValue) {
+      if(compareRegisterValue) {
         TimerSpec<id, timerNo>::setClearCounterOnCompareMatch(1);
         TimerSpec<id, timerNo>::enableOverflowInterrupt(0);
         TimerSpec<id, timerNo>::enableCompareMatchInterrupt(1);
