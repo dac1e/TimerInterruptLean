@@ -1,5 +1,4 @@
 // Do not remove the include below
-#include <assert.h>
 
 #include "TimerIntSandbox.h"
 #include "TimerInterruptLean.h"
@@ -49,8 +48,9 @@ static MyTimerInterupt myTimer;
 void setup()
 {
   Serial.begin(9600);
-
   myTimer.begin();
+
+  delay(100); // after download we give time for the IDE serial monitor to recover.
 
   /**
    * Pre-calculation and storing timer settings is not absolutely required, but it saves processor time.
@@ -59,21 +59,24 @@ void setup()
   const uint32_t minPeriod_ns = myTimer.minPeriod_ns();
   const uint32_t maxPeriod_ns = myTimer.maxPeriod_ns();
 
-  timerSettingsShortPeriod = myTimer.calculateTimerSettingsForPeriod_ns(shortPeriodTimeoutDemand_ns);
+  bool shortPeriodOk = true;
 
+  timerSettingsShortPeriod = myTimer.calculateTimerSettingsForPeriod_ns(shortPeriodTimeoutDemand_ns);
   { // The following check is not required if you know that the period is valid for the selected timer.
     const TIMER_INTERRUPT_LEAN_ERROR errShortPeriod = myTimer.checkTimeoutPeriod(timerSettingsLongPeriod);
     printPeriodErr(shortPeriodTimeoutDemand_ns, errShortPeriod, minPeriod_ns, maxPeriod_ns);
     // Stop on error
-    assert(errShortPeriod == TIMER_INTERRUPT_LEAN_ERROR::OK);
+    shortPeriodOk = (errShortPeriod == TIMER_INTERRUPT_LEAN_ERROR::OK);
   }
+
+  bool longPeriodOk = true;
 
   timerSettingsLongPeriod  = myTimer.calculateTimerSettingsForPeriod_ns(longPeriodTimeoutDemand_ns);
   { // The following check is not required if you know that the period is valid or the selected timer.
     const TIMER_INTERRUPT_LEAN_ERROR errLongPeriod = myTimer.checkTimeoutPeriod(timerSettingsLongPeriod);
     printPeriodErr(longPeriodTimeoutDemand_ns, errLongPeriod, minPeriod_ns, maxPeriod_ns);
     // Stop on error
-    assert(errLongPeriod == TIMER_INTERRUPT_LEAN_ERROR::OK);
+    longPeriodOk = (errLongPeriod == TIMER_INTERRUPT_LEAN_ERROR::OK);
   }
 
   delay(100); // Give enough time for finalizing print outs.
@@ -88,27 +91,32 @@ void setup()
 
   delay(100); // Give enough time for finalizing print outs.
 
-  // 2 x timeout with long period
-  Serial.println("\r\nStart 2 x long period");
-  delay(100);
-  timeStamp = micros();
-  myTimer.start(timerSettingsLongPeriod, 2);
-  delay(2000); // wait 2 seconds
+  if(longPeriodOk) {
+    // 2 x timeout with long period
+    Serial.println("\r\nStart 2 x long period");
+    delay(100);
+    timeStamp = micros();
+    myTimer.start(timerSettingsLongPeriod, 2);
+    delay(2000); // wait 2 seconds
+  }
 
-
-  // 3 x timeouts with short 16ms period
-  Serial.println("\r\nStart 3 x short periods");
-  delay(100);
-  timeStamp = micros();
-  myTimer.start(timerSettingsShortPeriod, 3);
-  delay(3000); // wait 3 seconds
+  if(shortPeriodOk) {
+    // 3 x timeouts with short 16ms period
+    Serial.println("\r\nStart 3 x short periods");
+    delay(100);
+    timeStamp = micros();
+    myTimer.start(timerSettingsShortPeriod, 3);
+    delay(3000); // wait 3 seconds
+  }
 
 #if ENABLE_INFINITE
-  // Infinite timeouts with long period
-  Serial.println("\r\nStart inf x long periods");
-  delay(100);
-  timeStamp = micros();
-  myTimer.start(timerSettingsLongPeriod, 0 /* 0=infinite */);
+  if(longPeriodOk) {
+    // Infinite timeouts with long period
+    Serial.println("\r\nStart inf x long periods");
+    delay(100);
+    timeStamp = micros();
+    myTimer.start(timerSettingsLongPeriod, 0 /* 0=infinite */);
+  }
 #endif
 }
 
@@ -123,12 +131,12 @@ void printPeriodErr(const uint32_t timeoutDemand_ns, const TIMER_INTERRUPT_LEAN_
   Serial.print(timeoutDemand_ns);
   Serial.print("ns timeout period..");
   if(err == TIMER_INTERRUPT_LEAN_ERROR::PERIOD_TOO_SMALL) {
-    Serial.print("\t..error, period is beyond range ");
+    Serial.print("\r\n\t..error, period is beyond range ");
   } else
   if(err == TIMER_INTERRUPT_LEAN_ERROR::PERIOD_TOO_LARGE) {
-    Serial.print("\t..error, period is beyond range ");
+    Serial.print("\r\n\t..error, period is beyond range ");
   } else if (err == TIMER_INTERRUPT_LEAN_ERROR::OK) {
-    Serial.print("\t..success, period is within valid range ");
+    Serial.print("\r\n\t..success, period is within valid range ");
   }
   Serial.print("[");
   Serial.print(minPeriod_ns);
