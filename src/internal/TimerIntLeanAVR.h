@@ -5,6 +5,8 @@
  *      Author: Wolfgang
  */
 
+#pragma once
+
 #ifndef TIMERINTLEAN_INTERNAL_TIMERINTLEANAVR_H_
 #define TIMERINTLEAN_INTERNAL_TIMERINTLEANAVR_H_
 
