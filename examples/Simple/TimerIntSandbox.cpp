@@ -10,27 +10,35 @@ typedef TimerInterruptLean_timer_settings_t ts_t;
 
 volatile static unsigned long timeStamp = 0;
 volatile static size_t   counter   = 0;
+
+// Use timer number 1 for this example.
 static constexpr size_t TIMER_NO = 1;
 
-ts_t timerSettingsShortPeriod=0;
-ts_t timerSettingsLongPeriod=0;
-
-constexpr uint32_t shortPeriodTimeoutDemand_ns =  32768000L; //  32.768 milliseconds ->  32768000 nanoseconds
-constexpr uint32_t longPeriodTimeoutDemand_ns  = 512345000L; // 512.345 milliseconds -> 512345000 nanoseconds
+// For convenience:
+// 1 millisecond = 1000 microseconds = 1000000 nanoseconds
+// 1 microsecond = 1000 nanoseconds
+constexpr uint32_t shortPeriodTimeoutDemand_ns =  16384000L; //  16.2384 milliseconds ->  16384000 nanoseconds
+constexpr uint32_t longPeriodTimeoutDemand_ns  = 512345000L; // 512.3450 milliseconds -> 512345000 nanoseconds
 
 
 static void printPeriodErr(const uint32_t timeoutDemand_us, const TIMER_INTERRUPT_LEAN_ERROR err, const uint32_t minPeriod_ns, const uint32_t maxPeriod_ns );
-static void printShortPeriodScheduledPeriod(const ts_t timerSettings);
-static void printLongPeriodScheduledPeriod(const ts_t timerSettings);
+static void printScheduledPeriod(const ts_t timerSettings, const uint32_t periodTimeoutDemand_ns);
 
+
+ts_t timerSettingsShortPeriod=-1;
+ts_t timerSettingsLongPeriod=-1;
 
 /* Derive a class that will receive the timer timeout */
 class MyTimerInterupt : public TimerInterruptLean<TIMER_NO> {
+
   void onTimeout() override {
     const unsigned long t = micros();
     const unsigned long delta =t - timeStamp;
     timeStamp = t;
 
+    // Note: This function is executed within interrupt service context.
+    // Hence, if we are doing to many Serial.print() calls here, the
+    // Serial send buffer may overflow which could result in a lock up.
     Serial.print("timeout #");
     Serial.print(++counter);
     Serial.print(" after ");
@@ -38,7 +46,6 @@ class MyTimerInterupt : public TimerInterruptLean<TIMER_NO> {
     Serial.print('.');
     Serial.print(delta % 1000);
     Serial.println("ms");
-
   }
 };
 
@@ -56,14 +63,21 @@ void setup()
    * Pre-calculation and storing timer settings is not absolutely required, but it saves processor time.
    * Alternatively the the timer settings could be calculated just before the timer is started.
    */
+  timerSettingsShortPeriod = myTimer.calculateTimerSettingsForPeriod_ns(shortPeriodTimeoutDemand_ns);
+  timerSettingsLongPeriod  = myTimer.calculateTimerSettingsForPeriod_ns(longPeriodTimeoutDemand_ns);
+
+
+  /**
+   * Print out some details about the timer.
+   */
+  // Get the possible period range.
   const uint32_t minPeriod_ns = myTimer.minPeriod_ns();
   const uint32_t maxPeriod_ns = myTimer.maxPeriod_ns();
 
   bool shortPeriodOk = true;
 
-  timerSettingsShortPeriod = myTimer.calculateTimerSettingsForPeriod_ns(shortPeriodTimeoutDemand_ns);
   { // The following check is not required if you know that the period is valid for the selected timer.
-    const TIMER_INTERRUPT_LEAN_ERROR errShortPeriod = myTimer.checkTimeoutPeriod(timerSettingsLongPeriod);
+    const TIMER_INTERRUPT_LEAN_ERROR errShortPeriod = myTimer.checkTimeoutPeriod(timerSettingsShortPeriod);
     printPeriodErr(shortPeriodTimeoutDemand_ns, errShortPeriod, minPeriod_ns, maxPeriod_ns);
     // Stop on error
     shortPeriodOk = (errShortPeriod == TIMER_INTERRUPT_LEAN_ERROR::OK);
@@ -71,7 +85,7 @@ void setup()
 
   bool longPeriodOk = true;
 
-  timerSettingsLongPeriod  = myTimer.calculateTimerSettingsForPeriod_ns(longPeriodTimeoutDemand_ns);
+
   { // The following check is not required if you know that the period is valid or the selected timer.
     const TIMER_INTERRUPT_LEAN_ERROR errLongPeriod = myTimer.checkTimeoutPeriod(timerSettingsLongPeriod);
     printPeriodErr(longPeriodTimeoutDemand_ns, errLongPeriod, minPeriod_ns, maxPeriod_ns);
@@ -80,17 +94,18 @@ void setup()
   }
 
   delay(100); // Give enough time for finalizing print outs.
-  /**
-   * End of check
-   */
 
   // Due to the resolution of the timer, the scheduled period may differ from the demanded period.
   // We print the scheduled vs. the demanded period here:
-  printShortPeriodScheduledPeriod(timerSettingsShortPeriod);
-  printLongPeriodScheduledPeriod(timerSettingsLongPeriod);
+  Serial.println();
+  printScheduledPeriod(timerSettingsShortPeriod, shortPeriodTimeoutDemand_ns);
+  printScheduledPeriod(timerSettingsLongPeriod, longPeriodTimeoutDemand_ns);
 
   delay(100); // Give enough time for finalizing print outs.
 
+  /**
+   * Now do the real work.
+   */
   if(longPeriodOk) {
     // 2 x timeout with long period
     Serial.println("\r\nStart 2 x long period");
@@ -101,15 +116,18 @@ void setup()
   }
 
   if(shortPeriodOk) {
-    // 3 x timeouts with short 16ms period
+    // 3 x timeouts with short period
     Serial.println("\r\nStart 3 x short periods");
     delay(100);
     timeStamp = micros();
     myTimer.start(timerSettingsShortPeriod, 3);
-    delay(3000); // wait 3 seconds
+    delay(1000); // wait 1 second
   }
 
 #if ENABLE_INFINITE
+  delay(2000); // wait 2 more seconds so that the output from the previous 3 timeouts can conveniently
+               // be watched on the serial monitor.
+
   if(longPeriodOk) {
     // Infinite timeouts with long period
     Serial.println("\r\nStart inf x long periods");
@@ -145,32 +163,23 @@ void printPeriodErr(const uint32_t timeoutDemand_ns, const TIMER_INTERRUPT_LEAN_
   Serial.println("ns]");
 }
 
-void printShortPeriodScheduledPeriod(const ts_t timerSettings)
+void printScheduledPeriod(const ts_t timerSettings, const uint32_t periodTimeoutDemand_ns)
 {
   const uint32_t scheduledTimeout = myTimer.getScheduledTimeoutPeriod_ns(timerSettings);
-  Serial.print("Info: Scheduled period for ");
-  Serial.print(shortPeriodTimeoutDemand_ns);
-  Serial.print("ns is ");
-  Serial.print(scheduledTimeout);
-  Serial.print("ns, deviation is ");
+  if(scheduledTimeout > 0 && scheduledTimeout < UINT32_MAX) {
+    Serial.print("Info: Scheduled period for ");
+    Serial.print(periodTimeoutDemand_ns);
+    Serial.print("ns is ");
+    Serial.print(scheduledTimeout);
+    Serial.print("ns, deviation is ");
 
-  const uint32_t delta = shortPeriodTimeoutDemand_ns - scheduledTimeout;
-  Serial.print(delta);
-  Serial.println("ns");
+    const int32_t delta =
+        static_cast<int64_t>(scheduledTimeout) - static_cast<int64_t>(periodTimeoutDemand_ns);
+    Serial.print(delta);
+    Serial.println("ns");
+  } else {
+    Serial.print("Info: period ");
+    Serial.print(periodTimeoutDemand_ns);
+    Serial.println("ns could not be scheduled.");
+  }
 }
-
-void printLongPeriodScheduledPeriod(const ts_t timerSettings)
-{
-  const uint32_t scheduledTimeout = myTimer.getScheduledTimeoutPeriod_ns(timerSettings);
-  Serial.print("Info: Scheduled period for ");
-  Serial.print(longPeriodTimeoutDemand_ns);
-  Serial.print("ns is ");
-  Serial.print(scheduledTimeout);
-  Serial.print("ns, deviation is ");
-
-  const int32_t delta =
-      static_cast<int64_t>(longPeriodTimeoutDemand_ns) - static_cast<int64_t>(scheduledTimeout);
-  Serial.print(delta);
-  Serial.println("ns");
-}
-

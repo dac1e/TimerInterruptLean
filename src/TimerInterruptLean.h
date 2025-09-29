@@ -56,12 +56,17 @@ public:
    * The timer settings carry prescaler and counter values for the requested period.
    * Those timer settings can be passed to the start() function which will then
    * start the timer with a timeout as per nanoseconds passed to this function.
+   *
    */
   static timer_settings_t calculateTimerSettingsForPeriod_ns(const uint32_t nanoSeconds);
 
   /**
    * Due to the timer resolution, the real period might differ from the demanded.
    * This function will provide the scheduled period.
+   *
+   * If timerSetting are too to small to be scheduled, the return value will be set 0.
+   * If timerSetting are too to large to be scheduled, the return value will be set
+   *  to UINT32_MAX.
    */
   static uint32_t getScheduledTimeoutPeriod_ns(const timer_settings_t timerSettings);
 
@@ -79,7 +84,7 @@ public:
   /**
    * Start the timer.
    * rptCount is the number of timeouts that shall appear before the timer is stopped automatically.
-   *  if this is 0, the timer will never be stopped.
+   *  When set to 0, the timer will never be stopped.
    *
    */
   static TIMER_INTERRUPT_LEAN_ERROR start(const timer_settings_t timerSettings, const uint32_t rptCount);

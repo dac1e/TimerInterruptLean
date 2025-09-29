@@ -29,7 +29,6 @@
 #if defined ARDUINO_ARCH_AVR
 
 #include "TimerIntLeanAVR.h"
-#include "log.h"
 
 namespace TimerIntLean_ {
 
@@ -114,6 +113,7 @@ template<unsigned timerNo> uint32_t TimerInterruptLean<timerNo>::maxPeriod_ns() 
 }
 
 template<unsigned timerNo> TIMER_INTERRUPT_LEAN_ERROR TimerInterruptLean<timerNo>::checkTimeoutPeriod(const timer_settings_t timerSettings) {
+  logvarln(timerSettings);
   if(TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::isPeriodTooSmall(timerSettings)) {
     return TIMER_INTERRUPT_LEAN_ERROR::PERIOD_TOO_SMALL;
   }

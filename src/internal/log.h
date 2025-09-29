@@ -34,7 +34,7 @@
 #include <stdint.h>
 #include <Arduino.h>
 
-#define TimerIntLean_ENABLE_LOG false
+#define TimerIntLean_ENABLE_LOG true
 
 namespace TimerIntLean_ {
 
@@ -88,8 +88,8 @@ inline void print_variable(const uint64_t& v, const char* const varname, const c
 
 
 #if TimerIntLean_ENABLE_LOG
-#define logvar(x) print_variable(x, __STRINGIFY(x), __FUNCTION__)
-#define logvarln(x) print_variableln(x, __STRINGIFY(x), __FUNCTION__)
+#define logvar(x) ::TimerIntLean_::print_variable(x, __STRINGIFY(x), __FUNCTION__)
+#define logvarln(x) ::TimerIntLean_::print_variableln(x, __STRINGIFY(x), __FUNCTION__)
 #else
 #define logvar(x)
 #define logvarln(x)
