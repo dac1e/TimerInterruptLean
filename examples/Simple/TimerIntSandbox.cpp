@@ -16,7 +16,8 @@ static constexpr size_t TIMER_NO = 1;
 ts_t timerSettingsShortPeriod=0;
 ts_t timerSettingsLongPeriod=0;
 
-constexpr uint32_t shortPeriodTimeoutDemand_ns = 54321000L; //  54.321 milliseconds ->  54321000 nanoseconds
+constexpr uint32_t shortPeriodTimeoutDemand_ns = 262144000L; //  262.144 milliseconds ->  262144000 nanoseconds
+//constexpr uint32_t shortPeriodTimeoutDemand_ns = 54321000L; //  54.321 milliseconds ->  54321000 nanoseconds
 constexpr uint32_t longPeriodTimeoutDemand_ns = 512345000L; // 512.345 milliseconds -> 512345000 nanoseconds
 
 
@@ -88,12 +89,12 @@ void setup()
 
   delay(100); // Give enough time for finalizing print outs.
 
-  // 1 x timeout with long period
-  Serial.println("\r\nStart 1 x long period");
+  // 2 x timeout with long period
+  Serial.println("\r\nStart 2 x long period");
   delay(100);
   timeStamp = micros();
-  myTimer.start(timerSettingsLongPeriod, 1);
-  delay(1000); // wait 1 second
+  myTimer.start(timerSettingsLongPeriod, 2);
+  delay(2000); // wait 2 seconds
 
 
   // 3 x timeouts with short 16ms period
@@ -147,7 +148,6 @@ void printShortPeriodScheduledPeriod(const ts_t timerSettings)
   Serial.print("ns, deviation is ");
 
   const uint32_t delta = shortPeriodTimeoutDemand_ns - scheduledTimeout;
-  Serial.print('-');
   Serial.print(delta);
   Serial.println("ns");
 }
@@ -161,10 +161,9 @@ void printLongPeriodScheduledPeriod(const ts_t timerSettings)
   Serial.print(scheduledTimeout);
   Serial.print("ns, deviation is ");
 
-  const uint32_t delta = longPeriodTimeoutDemand_ns - scheduledTimeout;
-  Serial.print('-');
+  const int32_t delta =
+      static_cast<int64_t>(longPeriodTimeoutDemand_ns) - static_cast<int64_t>(scheduledTimeout);
   Serial.print(delta);
   Serial.println("ns");
-
 }
 

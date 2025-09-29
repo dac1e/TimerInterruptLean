@@ -118,19 +118,26 @@ static int32_t calculateTimerSettings_(const uint32_t periodNanoSec, const uint6
 }
 
 template<typename COUNTER_T> uint32_t getScheduledTimeoutPeriod_ns_(const uint32_t timerSettings, const uint64_t* const TIMER_PERIOD_FEMTOSEC) {
-  COUNTER_T compareRegister = dispatchCompareRegisterValue<COUNTER_T>(timerSettings);
+  constexpr uint32_t COMPARE_REGISTER_MAX = (1LL << (8*sizeof(COUNTER_T)));
+
+  uint32_t compareRegister = dispatchCompareRegisterValue<COUNTER_T>(timerSettings);
+
+  // If the compare register is 0, the overflow interrupt will be used.
+  if(not compareRegister) {
+    compareRegister = COMPARE_REGISTER_MAX;
+  }
+
   const uint8_t prescaler = dispatchPrescaler<COUNTER_T>(timerSettings);
 
 //  logvarln(timerSettings);
-  logvarln(compareRegister);
-  logvarln(prescaler);
+//  logvarln(compareRegister);
+//  logvarln(prescaler);
 
-  constexpr uint64_t COMPARE_REGISTER_MAX = (1LL << (8*sizeof(COUNTER_T)));
-  constexpr uint64_t FEMPTO_SEC_MAX = UINT64_MAX / COMPARE_REGISTER_MAX;
+  constexpr uint64_t FEMPTO_SEC_MAX = UINT64_MAX / static_cast<uint64_t>(COMPARE_REGISTER_MAX);
 
 //  logvarln(COMPARE_REGISTER_MAX);
 //  logvarln(FEMPTO_SEC_MAX);
-  logvarln(TIMER_PERIOD_FEMTOSEC[prescaler]);
+//  logvarln(TIMER_PERIOD_FEMTOSEC[prescaler]);
 //  logvarln(FEMPTO_SEC_MAX / TIMER_PERIOD_FEMTOSEC[prescaler]);
 
   uint64_t periodFemtoSec = TIMER_PERIOD_FEMTOSEC[prescaler] * compareRegister;
@@ -141,7 +148,7 @@ template<typename COUNTER_T> uint32_t getScheduledTimeoutPeriod_ns_(const uint32
     periodFemtoSec = TIMER_PERIOD_FEMTOSEC[prescaler] * compareRegister;
   }
 
-  logvarln(periodFemtoSec);
+//  logvarln(periodFemtoSec);
   return periodFemtoSec / (MEGA / scale);
 }
 
@@ -179,6 +186,7 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct TimerSpec {
   static void setCompareValue(const counter_t v) {}
   static void setClearCounterOnCompareMatch(const uint8_t v) {}
   static void enableCompareMatchInterrupt(const uint8_t v) {}
+  static void enableOverflowInterrupt(const uint8_t v) {}
   static int32_t calculateTimerSettings(const uint32_t periodNanoSec) {return 0;}
   uint32_t getScheduledTimeoutPeriod_ns(const uint32_t timerSettings){return 0;}
 };
@@ -194,13 +202,14 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 1> {
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static void clearTCCR() {TCCR1A = 0; TCCR1B = 0;};
   static void setCounter(counter_t v) {TCNT1 = v;}
-  static void setPrescaler(const uint8_t v) {logvarln(v); TCCR1B = (TCCR1B & ~0x07) | v; logvarln(TCCR1B);}
-  static void setCompareValue(const counter_t v) {logvarln(v); OCR1A = v; logvarln(OCR1A);}
+  static void setPrescaler(const uint8_t v) {TCCR1B = (TCCR1B & ~0x07) | v;}
+  static void setCompareValue(const counter_t v) {OCR1A = v;;}
   static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR1B, WGM12, v);}
 #if defined TIMSK1
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK1, OCIE1A, v);}
+  static void enableOverflowInterrupt(const uint8_t v) {bitWrite(TIMSK1, TOIE1, v);}
 #elif defined TIMSK
-  static void enableCompareMatchInterrupt(const uint8_t v) {logvarln(v); bitWrite(TIMSK, OCIE1A, v);}
+  static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK, OCIE1A, v);}
 #endif
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
@@ -227,14 +236,16 @@ template<> struct TimerSpec<ATMEGA_TINY25, 1> {
   static uint32_t maxPeriod_ns() {return maxPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static uint32_t minPeriod_ns() {return minPeriod_ns_<counter_t>(TIMER_PERIOD_FEMTOSEC, PRESCALER_COUNT);}
   static void clearTCCR() {TCCR1A = 0; TCCR1B = 0;};
-  static void setPrescaler(const uint8_t v) {logvar(v); TCCR1B = (TCCR1B & ~0x07) | v;}
-  static void setCounter(counter_t v) {logvar(v); TCNT1 = v;}
+  static void setPrescaler(const uint8_t v) {TCCR1B = (TCCR1B & ~0x07) | v;}
+  static void setCounter(counter_t v) {TCNT1 = v;}
   static void setCompareValue(const counter_t v) {OCR1A = v;}
   static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR1A, WGM11, v);}
 #if defined TIMSK1
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK1, OCIE1A, v);}
+  static void enableOverflowInterrupt(const uint8_t v) {bitWrite(TIMSK1, TOIE1, v);}
 #elif defined TIMSK
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK, OCIE1A, v);}
+  static void enableOverflowInterrupt(const uint8_t v) {bitWrite(TIMSK, TOIE1, v);}
 #endif
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
@@ -264,6 +275,7 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 2> {
   static void setCompareValue(const counter_t v) {OCR2A = v;}
   static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR2A, WGM21, v);}
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK2, OCIE2A, v);}
+  static void enableOverflowInterrupt(const uint8_t v) {bitWrite(TIMSK2, TOIE2, v);}
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_T2;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_T2_CNT;
   static const uint64_t* const TIMER_PERIOD_FEMTOSEC;
@@ -292,6 +304,7 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 3> {
   static void setCompareValue(const counter_t v) {OCR3A = v;}
   static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR3B, WGM32, v);}
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK3, OCIE3A, v);}
+  static void enableOverflowInterrupt(const uint8_t v) {bitWrite(TIMSK3, TOIE3, v);}
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
   static const uint64_t* const TIMER_PERIOD_FEMTOSEC;
@@ -325,6 +338,7 @@ template<> struct TimerSpec<ATMEGA_2560, 4> {
   static void setCompareValue(const counter_t v) {OCR4A = v;}
   static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR4B, WGM42, v);}
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK4, OCIE4A, v);}
+  static void enableOverflowInterrupt(const uint8_t v) {bitWrite(TIMSK4, TOIE4, v);}
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
   static const uint64_t* const TIMER_PERIOD_FEMTOSEC;
@@ -358,6 +372,7 @@ template<> struct TimerSpec<ATMEGA_32U4, 4> {
   static void setCompareValue(const counter_t v) {OCR4A = v;}
   static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR4B, CS43, v);} // TODO this may not be correct, atmega32u4
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK4, OCIE4A, v);}
+  static void enableOverflowInterrupt(const uint8_t v) {bitWrite(TIMSK4, TOIE4, v);}
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
   static const uint64_t* const TIMER_PERIOD_FEMTOSEC;
@@ -387,6 +402,7 @@ template<enum MICROCONTROLLER_ID id> struct TimerSpec<id, 5> {
   static void setCompareValue(const counter_t v) {OCR4A = v;}
   static void setClearCounterOnCompareMatch(const uint8_t v) {bitWrite(TCCR5B, WGM52, v);}
   static void enableCompareMatchInterrupt(const uint8_t v) {bitWrite(TIMSK4, OCIE5A, v);}
+  static void enableOverflowInterrupt(const uint8_t v) {bitWrite(TIMSK5, TOIE5, v);}
   static constexpr uint64_t MAX_PERIOD_FEMTOSEC = MAX_PERIOD_FEMTOSEC_TX;
   static constexpr size_t PRESCALER_COUNT = PRESCALER_TX_CNT;
   static const uint64_t* const TIMER_PERIOD_FEMTOSEC;
@@ -413,6 +429,7 @@ template<unsigned timerNo> struct IsrHook {
     }
   }
   static void vector();
+  static void vectorOVF();
 };
 
 template<unsigned timerNo> void (*IsrHook<timerNo>::mStopFunction)() = nullptr;
@@ -422,26 +439,36 @@ template<unsigned timerNo> uint32_t IsrHook<timerNo>::mInterruptCnt = 1;
 #if defined TCNT1
 template<> void IsrHook<1>::vector() __asm(TIMER1_COMPA_vect) __attribute__ ((signal,used, externally_visible));
 template<> void IsrHook<1>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<1>::isr();}
+template<> void IsrHook<1>::vectorOVF() __asm(TIMER1_OVF_vect) __attribute__ ((signal,used, externally_visible));
+template<> void IsrHook<1>::vectorOVF() {TimerIntLean_::TimerIntLeanAVR::IsrHook<1>::isr();}
 #endif
 
 #if defined TCNT2
 template<> void IsrHook<2>::vector() __asm(TIMER2_COMPA_vect) __attribute__ ((signal,used, externally_visible));
 template<> void IsrHook<2>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<2>::isr();}
+template<> void IsrHook<2>::vectorOVF() __asm(TIMER2_OVF_vect) __attribute__ ((signal,used, externally_visible));
+template<> void IsrHook<2>::vectorOVF() {TimerIntLean_::TimerIntLeanAVR::IsrHook<2>::isr();}
 #endif
 
 #if defined TCNT3
 template<> void IsrHook<3>::vector() __asm(TIMER3_COMPA_vect) __attribute__ ((signal,used, externally_visible));
 template<> void IsrHook<3>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<3>::isr();}
+template<> void IsrHook<3>::vectorOVF() __asm(TIMER3_OVF_vect) __attribute__ ((signal,used, externally_visible));
+template<> void IsrHook<3>::vectorOVF() {TimerIntLean_::TimerIntLeanAVR::IsrHook<3>::isr();}
 #endif
 
 #if defined TCNT4
 template<> void IsrHook<4>::vector() __asm(TIMER4_COMPA_vect) __attribute__ ((signal,used, externally_visible));
 template<> void IsrHook<4>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<4>::isr();}
+template<> void IsrHook<4>::vectorOVF() __asm(TIMER4_OVF_vect) __attribute__ ((signal,used, externally_visible));
+template<> void IsrHook<4>::vectorOVF() {TimerIntLean_::TimerIntLeanAVR::IsrHook<4>::isr();}
 #endif
 
 #if defined TCNT5
 template<> void IsrHook<5>::vector() __asm(TIMER5_COMPA_vect) __attribute__ ((signal,used, externally_visible));
 template<> void IsrHook<5>::vector() {TimerIntLean_::TimerIntLeanAVR::IsrHook<5>::isr();}
+template<> void IsrHook<5>::vectorOVF() __asm(TIMER5_OVF_vect) __attribute__ ((signal,used, externally_visible));
+template<> void IsrHook<5>::vectorOVF() {TimerIntLean_::TimerIntLeanAVR::IsrHook<5>::isr();}
 #endif
 
 #include "undefvectors.inc"
@@ -453,9 +480,9 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
     noInterrupts();
     IsrHook<timerNo>::mStopFunction = stop;
     TimerSpec<id, timerNo>::enableCompareMatchInterrupt(0);
+    TimerSpec<id, timerNo>::enableOverflowInterrupt(0);
     TimerSpec<id, timerNo>::clearTCCR();
     TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(0));
-    TimerSpec<id, timerNo>::setClearCounterOnCompareMatch(1);
     interrupts();
   }
 
@@ -492,16 +519,25 @@ template<enum MICROCONTROLLER_ID id, unsigned timerNo> struct Timer {
     interrupts();
   }
 
-  static void start(const int32_t timerSettings, const uint32_t shotCount) {
+  static void start(const int32_t timerSettings, const uint32_t rptCount) {
     if(timerSettings >= 0) {
       noInterrupts();
-      IsrHook<timerNo>::mInterruptCnt = shotCount;
+      IsrHook<timerNo>::mInterruptCnt = rptCount;
       TimerSpec<id, timerNo>::setCounter(0);
-      TimerSpec<id, timerNo>::setCompareValue(dispatchCompareRegisterValue<counter_t>(timerSettings));
+      const counter_t compareValue = dispatchCompareRegisterValue<counter_t>(timerSettings);
+      TimerSpec<id, timerNo>::setCompareValue(compareValue);
       TimerSpec<id, timerNo>::setPrescaler(dispatchPrescaler<counter_t>(timerSettings));
-      TimerSpec<id, timerNo>::enableCompareMatchInterrupt(1);
+      if(compareValue) {
+        TimerSpec<id, timerNo>::setClearCounterOnCompareMatch(1);
+        TimerSpec<id, timerNo>::enableOverflowInterrupt(0);
+        TimerSpec<id, timerNo>::enableCompareMatchInterrupt(1);
+      } else {
+        TimerSpec<id, timerNo>::setClearCounterOnCompareMatch(0);
+        TimerSpec<id, timerNo>::enableCompareMatchInterrupt(0);
+        TimerSpec<id, timerNo>::enableOverflowInterrupt(1);
+      }
+      interrupts();
     }
-    interrupts();
   }
 };
 

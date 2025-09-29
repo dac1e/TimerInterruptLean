@@ -29,19 +29,48 @@ private:
 public:
   bool begin();
 
-  // platform dependent API
+  /**
+   * The timer settings carry prescaler and counter values for the requested period.
+   * Those timer settings can be passed to the start() function which will then
+   * start the timer with a timeout as per nanoseconds passed to this function.
+   */
   static timer_settings_t calculateTimerSettingsForPeriod_ns(const uint32_t nanoSeconds);
 
+  /**
+   * Due to the timer resolution, the real period might differ from the demanded.
+   * This function will provide the scheduled period.
+   */
   static uint32_t getScheduledTimeoutPeriod_ns(const timer_settings_t timerSettings);
 
+  /**
+   * Return the minimum allowed period in nanoseconds.
+   */
   static uint32_t minPeriod_ns();
+  /**
+   * Return the maximum allowed period in nanoseconds.
+   */
   static uint32_t maxPeriod_ns();
 
   static TIMER_INTERRUPT_LEAN_ERROR checkTimeoutPeriod(const timer_settings_t timerSettings);
-  static TIMER_INTERRUPT_LEAN_ERROR start(const timer_settings_t timerSettings, const uint32_t shotCount);
+
+  /**
+   * Start the timer.
+   * rptCount is the number of timeouts that shall appear before the timer is stopped automatically.
+   *  if this is 0, the timer will never be stopped.
+   *
+   */
+  static TIMER_INTERRUPT_LEAN_ERROR start(const timer_settings_t timerSettings, const uint32_t rptCount);
+
+  /**
+   * Stop the timer.
+   */
   static inline void stop();
 
+  /**
+   * An internal function that needs to be public.
+   */
   static void isr();
+
 private:
   // Pointer to the TimerInterruptLean instance for this timerNo
   static TimerInterruptLean<timerNo>* timerInterruptInstance;

@@ -107,7 +107,7 @@ template<unsigned timerNo> void TimerInterruptLean<timerNo>::stop() {
   TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::stop();
 }
 
-template<unsigned timerNo> TIMER_INTERRUPT_LEAN_ERROR TimerInterruptLean<timerNo>::start(const timer_settings_t timerSettings, const uint32_t shotCount) {
+template<unsigned timerNo> TIMER_INTERRUPT_LEAN_ERROR TimerInterruptLean<timerNo>::start(const timer_settings_t timerSettings, const uint32_t rptCount) {
   if(TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::isPeriodTooSmall(timerSettings)) {
     return TIMER_INTERRUPT_LEAN_ERROR::PERIOD_TOO_SMALL;
   }
@@ -116,7 +116,7 @@ template<unsigned timerNo> TIMER_INTERRUPT_LEAN_ERROR TimerInterruptLean<timerNo
     return TIMER_INTERRUPT_LEAN_ERROR::PERIOD_TOO_LARGE;
   }
 
-  TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::start(timerSettings, shotCount);
+  TimerIntLean_::TimerIntLeanAVR::Timer<TimerIntLean_::MCU, timerNo>::start(timerSettings, rptCount);
   return TIMER_INTERRUPT_LEAN_ERROR::OK;
 }
 
